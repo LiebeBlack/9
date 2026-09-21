@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NetForge Studio — Router local y transferencia de archivos sin internet</title>
+<meta name="description" content="NetForge Studio convierte cualquier PC con Windows en un router Wi-Fi local que funciona sin internet: radar de dispositivos, bloqueo al instante, portal web y FTP con código QR. Un ejecutable, sin instalador ni dependencias.">
+<meta name="color-scheme" content="dark light">
+<meta property="og:title" content="NetForge Studio">
+<meta property="og:description" content="Router local, radar de dispositivos y transferencia de archivos sin internet. Un ejecutable, GPL-3.0.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230d1117'/><path d='M8 21.5a11 11 0 0 1 16 0' fill='none' stroke='%2358a6ff' stroke-width='2.4' stroke-linecap='round'/><path d='M12 25a6.5 6.5 0 0 1 8 0' fill='none' stroke='%2358a6ff' stroke-width='2.4' stroke-linecap='round'/><circle cx='16' cy='28' r='1.7' fill='%233fb950'/></svg>">
+<style>
+/* ==========================================================================
+   NetForge Studio — hoja de estilo unica, sin dependencias externas.
+   El tema oscuro es el de la propia aplicacion (mismos colores que Theme.cs).
+   ========================================================================== */
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface-alt:#11161d; --border:#30363d;
+  --text:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --success:#3fb950;
+  --warning:#d29922; --danger:#f85149; --accent-fill:#238636;
+  --shadow:0 1px 0 rgba(255,255,255,.02), 0 8px 30px rgba(0,0,0,.45);
+  --radius:14px; --mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+  --sans:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+}
+html[data-theme="light"]{
+  --bg:#ffffff; --surface:#f6f8fa; --surface-alt:#eef2f6; --border:#d0d7de;
+  --text:#1f2328; --muted:#59636e; --accent:#0969da; --success:#1a7f37;
+  --warning:#9a6700; --danger:#cf222e; --accent-fill:#1f883d;
+  --shadow:0 1px 3px rgba(31,35,40,.12), 0 8px 24px rgba(31,35,40,.08);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:96px}
+body{margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+  font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased}
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+h1,h2,h3,h4{line-height:1.2; margin:0 0 .5em}
+h2{font-size:clamp(1.5rem,1rem + 1.6vw,2.1rem); letter-spacing:-.02em}
+h3{font-size:1.1rem; letter-spacing:-.01em}
+p{margin:0 0 1em}
+code{font-family:var(--mono); font-size:.9em; background:var(--surface-alt);
+  border:1px solid var(--border); border-radius:6px; padding:.12em .4em}
+pre{margin:0; overflow:auto}
+pre code{background:none; border:0; padding:0; font-size:.88rem; line-height:1.55}
+.wrap{width:min(1180px,92vw); margin:0 auto}
+.muted{color:var(--muted)}
+.center{text-align:center}
+
+/* ---------------------------------------------------------------- cabecera */
+header{position:sticky; top:0; z-index:40; backdrop-filter:blur(10px);
+  background:color-mix(in srgb,var(--bg) 82%,transparent); border-bottom:1px solid var(--border)}
+.bar{display:flex; align-items:center; gap:18px; padding:12px 0}
+.brand{display:flex; align-items:center; gap:10px; font-weight:650; color:var(--text); font-size:1.05rem}
+.brand:hover{text-decoration:none}
+.brand svg{flex:0 0 auto}
+.brand small{display:block; font-weight:400; font-size:.72rem; color:var(--muted); line-height:1.2}
+nav.main{margin-left:auto; display:flex; gap:4px; flex-wrap:wrap}
+nav.main a{color:var(--muted); padding:7px 11px; border-radius:9px; font-size:.9rem; white-space:nowrap}
+nav.main a:hover{background:var(--surface); color:var(--text); text-decoration:none}
+nav.main a[aria-current="true"]{color:var(--text); background:var(--surface); box-shadow:inset 0 -2px 0 var(--accent)}
+.tools{display:flex; gap:8px; align-items:center}
+.tool{background:var(--surface); border:1px solid var(--border); color:var(--text);
+  border-radius:9px; padding:7px 11px; font-size:.82rem; cursor:pointer; font-family:inherit}
+.tool:hover{border-color:var(--accent); color:var(--accent)}
+.hamburger{display:none}
+
+/* ------------------------------------------------------------------- hero */
+.hero{padding:clamp(40px,7vw,86px) 0 clamp(24px,4vw,40px)}
+.hero .grid{display:grid; grid-template-columns:1.05fr .95fr; gap:clamp(24px,4vw,60px); align-items:center}
+.eyebrow{display:inline-flex; align-items:center; gap:8px; font-size:.8rem; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--accent); border:1px solid var(--border);
+  background:var(--surface); border-radius:999px; padding:5px 12px; margin-bottom:18px}
+.hero h1{font-size:clamp(2rem,1.2rem + 3.4vw,3.4rem); letter-spacing:-.03em; margin-bottom:.35em}
+.hero h1 em{font-style:normal; color:var(--accent)}
+.lead{font-size:clamp(1.02rem,.95rem + .4vw,1.2rem); color:var(--muted); max-width:60ch}
+.cta{display:flex; gap:12px; flex-wrap:wrap; margin:24px 0 18px}
+.btn{display:inline-flex; align-items:center; gap:9px; border-radius:10px; padding:11px 18px;
+  font-weight:600; font-size:.95rem; border:1px solid transparent; cursor:pointer; font-family:inherit}
+.btn.primary{background:var(--accent-fill); color:#fff}
+.btn.primary:hover{filter:brightness(1.12); text-decoration:none}
+.btn.ghost{background:var(--surface); border-color:var(--border); color:var(--text)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); text-decoration:none}
+.badges{display:flex; gap:8px; flex-wrap:wrap; list-style:none; padding:0; margin:0}
+.badges li{font-size:.78rem; color:var(--muted); border:1px solid var(--border);
+  background:var(--surface-alt); border-radius:999px; padding:4px 11px}
+
+/* radar + panel simulado */
+.demo{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:16px; display:grid; gap:14px; grid-template-columns:auto 1fr}
+.radar{width:132px; height:132px; border-radius:50%; position:relative; overflow:hidden;
+  border:1px solid var(--border); background:
+    radial-gradient(circle at 50% 50%, rgba(88,166,255,.10), transparent 62%),
+    repeating-radial-gradient(circle at 50% 50%, transparent 0 21px, var(--border) 21px 22px)}
+.radar::after{content:""; position:absolute; inset:44% 0; border-top:1px solid var(--border)}
+.radar::before{content:""; position:absolute; inset:0; border-left:1px solid var(--border)}
+.sweep{position:absolute; inset:0; border-radius:50%;
+  background:conic-gradient(from 0deg, rgba(88,166,255,.42), rgba(88,166,255,.06) 42deg, transparent 74deg);
+  animation:sweep 3s linear infinite}
+@keyframes sweep{to{transform:rotate(360deg)}}
+.dot{position:absolute; width:9px; height:9px; border-radius:50%; background:var(--accent);
+  left:var(--x); top:var(--y); transform:translate(-50%,-50%); box-shadow:0 0 0 4px rgba(88,166,255,.18)}
+.dot.warn{background:var(--warning); box-shadow:0 0 0 4px rgba(210,153,34,.18)}
+.dot.bad{background:var(--danger); box-shadow:0 0 0 4px rgba(248,81,73,.18)}
+.demo h3{font-size:.95rem; margin:0}
+.demo .panel{display:grid; gap:8px}
+.mock{width:100%; border-collapse:collapse; font-size:.82rem}
+.mock th{text-align:left; color:var(--muted); font-weight:600; font-size:.74rem;
+  text-transform:uppercase; letter-spacing:.05em; padding:4px 6px; border-bottom:1px solid var(--border)}
+.mock td{padding:5px 6px; border-bottom:1px solid var(--border); font-family:var(--mono); font-size:.78rem}
+.mock tr.banned td{color:var(--danger)}
+.mock .hit{background:var(--surface-alt); border:1px solid var(--border); color:var(--text);
+  border-radius:7px; padding:3px 8px; font-size:.74rem; cursor:pointer; font-family:inherit}
+.mock .hit:hover{border-color:var(--danger); color:var(--danger)}
+.mock .hit.pardon:hover{border-color:var(--success); color:var(--success)}
+.console{margin:0; background:var(--surface-alt); border:1px solid var(--border); border-radius:10px;
+  padding:10px 12px; font-family:var(--mono); font-size:.75rem; color:var(--muted);
+  max-height:104px; overflow:auto}
+.console b{color:var(--success); font-weight:600}
+.console i{color:var(--accent); font-style:normal}
+.mini{font-size:.76rem; color:var(--muted); margin:0}
+
+/* ---------------------------------------------------------------- secciones */
+section{padding:clamp(34px,5vw,64px) 0; border-top:1px solid var(--border)}
+.sec-head{max-width:70ch; margin-bottom:26px}
+.kicker{font-size:.78rem; text-transform:uppercase; letter-spacing:.09em; color:var(--accent); font-weight:600}
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(268px,1fr)); gap:14px}
+.card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px}
+.card h3{display:flex; align-items:center; gap:9px; margin-bottom:.35em}
+.card p{color:var(--muted); font-size:.93rem; margin:0}
+.card ul{color:var(--muted); font-size:.9rem; margin:.6em 0 0; padding-left:1.15em}
+.card li{margin:.25em 0}
+.ico{width:30px; height:30px; flex:0 0 auto; border-radius:9px; display:grid; place-items:center;
+  background:var(--surface-alt); border:1px solid var(--border)}
+.ico svg{width:17px; height:17px}
+
+.split{display:grid; grid-template-columns:1fr 1fr; gap:26px; align-items:start}
+.steps{counter-reset:s; list-style:none; padding:0; margin:0; display:grid; gap:12px}
+.steps li{position:relative; padding-left:46px; color:var(--muted)}
+.steps li::before{counter-increment:s; content:counter(s); position:absolute; left:0; top:1px;
+  width:30px; height:30px; border-radius:50%; background:var(--surface); border:1px solid var(--border);
+  color:var(--accent); display:grid; place-items:center; font-weight:650; font-size:.85rem}
+.steps strong{color:var(--text)}
+
+.tbl-wrap{overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface)}
+table.data{width:100%; border-collapse:collapse; font-size:.88rem; min-width:560px}
+table.data th,table.data td{text-align:left; padding:10px 13px; border-bottom:1px solid var(--border); vertical-align:top}
+table.data th{background:var(--surface-alt); color:var(--muted); font-size:.76rem;
+  text-transform:uppercase; letter-spacing:.06em; white-space:nowrap}
+table.data tr:last-child td{border-bottom:0}
+table.data code{font-size:.82em}
+.pill{display:inline-block; font-size:.72rem; border-radius:999px; padding:2px 9px; border:1px solid var(--border)}
+.pill.ok{color:var(--success); border-color:color-mix(in srgb,var(--success) 45%,var(--border))}
+.pill.no{color:var(--danger); border-color:color-mix(in srgb,var(--danger) 45%,var(--border))}
+.pill.soon{color:var(--warning); border-color:color-mix(in srgb,var(--warning) 45%,var(--border))}
+
+.chain{display:flex; align-items:stretch; gap:10px; flex-wrap:wrap}
+.chain .node{flex:1 1 210px; background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:14px}
+.chain .node b{display:block; margin-bottom:4px}
+.chain .node span{color:var(--muted); font-size:.86rem}
+.chain .arrow{align-self:center; color:var(--muted)}
+
+.note{border-left:3px solid var(--accent); background:var(--surface-alt); border-radius:0 10px 10px 0;
+  padding:12px 16px; color:var(--muted); font-size:.92rem}
+.note.warn{border-left-color:var(--warning)}
+.note.bad{border-left-color:var(--danger)}
+.note.ok{border-left-color:var(--success)}
+.cols{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+.checklist{list-style:none; padding:0; margin:0; display:grid; gap:9px}
+.checklist li{padding-left:28px; position:relative; color:var(--muted); font-size:.92rem}
+.checklist li::before{content:"✓"; position:absolute; left:0; top:0; color:var(--success); font-weight:700}
+.checklist.no li::before{content:"×"; color:var(--danger)}
+
+pre.block{background:var(--surface-alt); border:1px solid var(--border); border-radius:12px; padding:14px 16px; position:relative}
+.copy{position:absolute; top:8px; right:8px; background:var(--surface); border:1px solid var(--border);
+  color:var(--muted); border-radius:7px; padding:3px 9px; font-size:.72rem; cursor:pointer; font-family:inherit}
+.copy:hover{color:var(--accent); border-color:var(--accent)}
+details{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 16px; margin-bottom:10px}
+details summary{cursor:pointer; font-weight:600}
+details p{margin:.7em 0 0; color:var(--muted); font-size:.93rem}
+footer{border-top:1px solid var(--border); padding:34px 0 46px; color:var(--muted); font-size:.88rem}
+footer .cols{align-items:start}
+.reveal{opacity:0; transform:translateY(14px); transition:opacity .5s ease, transform .5s ease}
+.reveal.in{opacity:1; transform:none}
+.stat-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:22px 0 0}
+.stat{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px}
+.stat b{display:block; font-size:1.5rem; color:var(--accent); letter-spacing:-.02em}
+.stat span{font-size:.82rem; color:var(--muted)}
+@media (max-width:960px){
+  .hero .grid,.split,.cols{grid-template-columns:1fr}
+  nav.main{order:3; width:100%; margin-left:0}
+  .bar{flex-wrap:wrap}
+  .demo{grid-template-columns:1fr}
+  .radar{margin:0 auto}
+}
+@media (max-width:560px){
+  nav.main a{padding:6px 8px; font-size:.84rem}
+  .tools{order:2; margin-left:auto}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .sweep{animation:none}
+  .reveal{opacity:1; transform:none; transition:none}
+}
+@media print{
+  header,nav.main,.tools{display:none}
+  body{background:#fff; color:#000}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="#top">
+      <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="#0d1117"></rect>
+        <path d="M8 21.5a11 11 0 0 1 16 0" fill="none" stroke="#58a6ff" stroke-width="2.4" stroke-linecap="round"></path>
+        <path d="M12 25a6.5 6.5 0 0 1 8 0" fill="none" stroke="#58a6ff" stroke-width="2.4" stroke-linecap="round"></path>
+        <circle cx="16" cy="28" r="1.7" fill="#3fb950"></circle>
+      </svg>
+      <span>NetForge Studio <small data-es="Router local sin internet" data-en="Local router, no internet needed">Router local sin internet</small></span>
+    </a>
+    <nav class="main" aria-label="Secciones">
+      <a href="#funciones" data-es="Funciones" data-en="Features">Funciones</a>
+      <a href="#como" data-es="Cómo funciona" data-en="How it works">Cómo funciona</a>
+      <a href="#uso" data-es="Uso" data-en="Usage">Uso</a>
+      <a href="#compatibilidad" data-es="Compatibilidad" data-en="Compatibility">Compatibilidad</a>
+      <a href="#limites" data-es="Límites" data-en="Limits">Límites</a>
+      <a href="#verificacion" data-es="Verificación" data-en="Verification">Verificación</a>
+      <a href="#compilar" data-es="Compilar" data-en="Build">Compilar</a>
+      <a href="#faq" data-es="Preguntas" data-en="FAQ">Preguntas</a>
+    </nav>
+    <div class="tools">
+      <button class="tool" id="lang" type="button" aria-label="Cambiar idioma / Switch language" title="Idioma / Language">
+        <span id="lang-label">EN</span>
+      </button>
+      <button class="tool" id="theme" type="button" aria-label="Cambiar tema / Switch theme" title="Tema / Theme">◐</button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ================================================================ hero -->
+  <div class="hero wrap">
+    <div class="grid">
+      <div>
+        <span class="eyebrow" data-es="Windows · .NET 4.8 · GPL-3.0" data-en="Windows · .NET 4.8 · GPL-3.0">Windows · .NET 4.8 · GPL-3.0</span>
+        <h1 data-es-html="Convierte este PC en un <em>router local</em> que funciona sin internet" data-en-html="Turns this PC into a <em>local router</em> that works with no internet">Convierte este PC en un <em>router local</em> que funciona sin internet</h1>
+        <p class="lead" data-es="NetForge Studio levanta una red Wi-Fi propia, enseña quién entra, bloquea intrusos al instante y comparte archivos con cualquier móvil escaneando un código QR. Un solo ejecutable: sin instalador, sin dependencias y sin servicios en la nube." data-en="NetForge Studio raises its own Wi-Fi network, shows who joins, bans intruders instantly and shares files with any phone by scanning a QR code. One executable: no installer, no dependencies, no cloud services.">NetForge Studio levanta una red Wi-Fi propia, enseña quién entra, bloquea intrusos al instante y comparte archivos con cualquier móvil escaneando un código QR. Un solo ejecutable: sin instalador, sin dependencias y sin servicios en la nube.</p>
+        <div class="cta">
+          <a class="btn primary" href="#descarga">
+            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M8 1.5a.75.75 0 0 1 .75.75v6.19l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 0 1 1.06-1.06l2.22 2.22V2.25A.75.75 0 0 1 8 1.5Z"></path><path d="M2.5 11.75a.75.75 0 0 1 .75.75v1h9.5v-1a.75.75 0 0 1 1.5 0V14a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-1.5a.75.75 0 0 1 .75-.75Z"></path></svg>
+            <span data-es="Descargar el portable" data-en="Download the portable build">Descargar el portable</span>
+          </a>
+          <a class="btn ghost" href="#funciones" data-es="Ver todo lo que hace" data-en="See everything it does">Ver todo lo que hace</a>
+        </div>
+        <ul class="badges">
+          <li data-es="Sin internet" data-en="No internet">Sin internet</li>
+          <li data-es="Sin instalador" data-en="No installer">Sin instalador</li>
+          <li data-es="Sin dependencias" data-en="No dependencies">Sin dependencias</li>
+          <li data-es="Datos solo en tu PC" data-en="Data stays on your PC">Datos solo en tu PC</li>
+        </ul>
+      </div>
+
+      <!-- Simulador real del radar y del Martillo, hecho con DOM y sin dependencias. -->
+      <div class="demo" id="demo">
+        <div class="radar" aria-hidden="true">
+          <span class="sweep"></span>
+          <span class="dot" style="--x:62%;--y:31%"></span>
+          <span class="dot warn" style="--x:34%;--y:58%"></span>
+          <span class="dot" style="--x:71%;--y:69%"></span>
+          <span class="dot bad" style="--x:47%;--y:22%"></span>
+        </div>
+        <div class="panel">
+          <h3 data-es="Radar en vivo (simulación)" data-en="Live radar (simulation)">Radar en vivo (simulación)</h3>
+          <table class="mock">
+            <thead>
+              <tr>
+                <th data-es="IP" data-en="IP">IP</th>
+                <th data-es="MAC" data-en="MAC">MAC</th>
+                <th data-es="Fabricante" data-en="Vendor">Fabricante</th>
+                <th data-es="Estado" data-en="State">Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+          <p class="console" id="console" aria-live="polite"></p>
+          <p class="mini" data-es="Esto es una simulación en el navegador. La aplicación real audita tu red cada 3 segundos con la tabla ARP del sistema." data-en="This is a browser simulation. The real application audits your network every 3 seconds using the system ARP table.">Esto es una simulación en el navegador. La aplicación real audita tu red cada 3 segundos con la tabla ARP del sistema.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><b>0</b><span data-es="bytes de conexión a internet necesarios" data-en="bytes of internet connection required">bytes de conexión a internet necesarios</span></div>
+      <div class="stat"><b>3 s</b><span data-es="entre auditorías del radar" data-en="between radar sweeps">entre auditorías del radar</span></div>
+      <div class="stat"><b>2 s</b><span data-es="de vigilancia del Daemon Guard" data-en="Daemon Guard polling">de vigilancia del Daemon Guard</span></div>
+      <div class="stat"><b>195</b><span data-es="comprobaciones automáticas" data-en="automated checks">comprobaciones automáticas</span></div>
+      <div class="stat"><b>53.985</b><span data-es="prefijos de fabricante en la base offline" data-en="vendor prefixes in the offline database">prefijos de fabricante en la base offline</span></div>
+    </div>
+  </div>
+
+  <!-- ============================================================ problema -->
+  <section id="problema" class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker" data-es="Por qué existe" data-en="Why it exists">Por qué existe</span>
+      <h2 data-es="Windows se niega a compartir cuando no hay internet" data-en="Windows refuses to share when there is no internet">Windows se niega a compartir cuando no hay internet</h2>
+      <p class="lead" data-es="Convertir un PC en punto de acceso es fácil hasta que el sistema decide lo contrario. NetForge Studio ataca tres negativas concretas, una por una." data-en="Turning a PC into an access point is easy until the system decides otherwise. NetForge Studio attacks three specific refusals, one at a time.">Convertir un PC en punto de acceso es fácil hasta que el sistema decide lo contrario. NetForge Studio ataca tres negativas concretas, una por una.</p>
+    </div>
+    <div class="cards">
+      <div class="card reveal">
+        <h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 6.5a9 9 0 0 1 12 0M4.6 9.4a5.4 5.4 0 0 1 6.8 0"/><circle cx="8" cy="12.6" r="1.2" fill="currentColor" stroke="none"/></svg></span>
+        <span data-es="“No hay internet, no hay red”" data-en="“No internet, no network”">“No hay internet, no hay red”</span></h3>
+        <p data-es="El asistente de zona con cobertura móvil de Windows se niega a arrancar si el equipo no tiene salida a internet." data-en="Windows' mobile hotspot wizard refuses to start when the machine has no internet uplink.">El asistente de zona con cobertura móvil de Windows se niega a arrancar si el equipo no tiene salida a internet.</p>
+        <p><strong data-es="La respuesta:" data-en="The answer:">La respuesta:</strong> <span data-es="grupo autónomo de Wi-Fi Direct, que sí emite SSID sin conexión." data-en="Wi-Fi Direct autonomous group, which does broadcast an SSID offline.">grupo autónomo de Wi-Fi Direct, que sí emite SSID sin conexión.</span></p>
+      </div>
+      <div class="card reveal">
+        <h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 13V3h10v10z"/><path d="M6 6h4M6 9h4"/></svg></span>
+        <span data-es="Drivers que no implementan Soft AP" data-en="Drivers that skip Soft AP">Drivers que no implementan Soft AP</span></h3>
+        <p data-es="El comando clásico falla sin explicar nada, y cada tarjeta es distinta." data-en="The classic command fails without explanation, and every card is different.">El comando clásico falla sin explicar nada, y cada tarjeta es distinta.</p>
+        <p><strong data-es="La respuesta:" data-en="The answer:">La respuesta:</strong> <span data-es="sondear el equipo al arrancar y probar los motores en cadena hasta que uno funcione." data-en="probe the machine at startup and try the engines in order until one works.">sondear el equipo al arrancar y probar los motores en cadena hasta que uno funcione.</span></p>
+      </div>
+      <div class="card reveal">
+        <h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 2.5v4M8 2.5 5.5 5M8 2.5 10.5 5"/><path d="M2.5 10.5A4.5 4.5 0 0 0 7 15h2a4.5 4.5 0 0 0 4.5-4.5"/></svg></span>
+        <span data-es="La red que desaparece" data-en="The network that vanishes">La red que desaparece</span></h3>
+        <p data-es="Si el móvil se descuelga, el adaptador entra en suspensión o el driver colapsa, la red no vuelve sola." data-en="If a phone drops, the adapter sleeps or the driver collapses, the network never comes back on its own.">Si el móvil se descuelga, el adaptador entra en suspensión o el driver colapsa, la red no vuelve sola.</p>
+        <p><strong data-es="La respuesta:" data-en="The answer:">La respuesta:</strong> <span data-es="un vigilante que la levanta de nuevo en segundos, sin que se caiga la intranet." data-en="a watchdog that raises it again within seconds, without dropping the intranet.">un vigilante que la levanta de nuevo en segundos, sin que se caiga la intranet.</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================== funciones -->
+  <section id="funciones" class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker" data-es="Funciones" data-en="Features">Funciones</span>
+      <h2 data-es="Todo lo que hace, sin adornos" data-en="Everything it does, with no filler">Todo lo que hace, sin adornos</h2>
+      <p class="lead" data-es="Cada punto de esta lista está implementado y descrito con las mismas palabras en la documentación del repositorio." data-en="Every item below is implemented and described with the same words in the repository documentation.">Cada punto de esta lista está implementado y descrito con las mismas palabras en la documentación del repositorio.</p>
+    </div>
+    <div class="cards">
+      <div class="card reveal"><h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="4" width="11" height="8" rx="1.5"/><path d="M5.5 7.5h5M5.5 9.5h3" stroke-linecap="round"/></svg></span><span data-es="Red local en un clic" data-en="One-click local network">Red local en un clic</span></h3><p data-es="SSID y clave propios, con clave aleatoria segura la primera vez. Bandas de 2,4 y 5 GHz cuando el adaptador las ofrece." data-en="Your own SSID and passphrase, randomly generated the first time. 2.4 and 5 GHz bands when the adapter offers them.">SSID y clave propios, con clave aleatoria segura la primera vez. Bandas de 2,4 y 5 GHz cuando el adaptador las ofrece.</p></div>
+
+      <div class="card reveal"><h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 8V3M8 8l3.4 2"/></svg></span><span data-es="Radar en vivo" data-en="Live radar">Radar en vivo</span></h3><p data-es="Auditoría cada 3 segundos en un hilo de fondo: IP, MAC, nombre del equipo y fabricante real. La identidad es la MAC, nunca la IP." data-en="A sweep every 3 seconds on a background thread: IP, MAC, hostname and real vendor. Identity is the MAC, never the IP.">Auditoría cada 3 segundos en un hilo de fondo: IP, MAC, nombre del equipo y fabricante real. La identidad es la MAC, nunca la IP.</p></div>
+
+      <div class="card reveal"><h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 12 12 4M10.5 4H12v1.5"/><path d="M3 8h2M11 13h2M8 3v2"/></svg></span><span data-es="El Martillo" data-en="The Hammer">El Martillo</span></h3><p data-es="Bloqueo de un dispositivo con un clic: regla de firewall de entrada y salida. Si el intruso reinicia el móvil para pedir otra IP, sigue bloqueado." data-en="One click blocks a device with inbound and outbound firewall rules. If the intruder reboots the phone to get another IP, it stays blocked.">Bloqueo de un dispositivo con un clic: regla de firewall de entrada y salida. Si el intruso reinicia el móvil para pedir otra IP, sigue bloqueado.</p></div>
+
+      <div class="card reveal"><h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 3v6.5"/><path d="M5.5 7 8 9.5 10.5 7"/><path d="M3 12.5h10"/></svg></span><span data-es="Gestor de Indultos" data-en="Pardon manager">Gestor de Indultos</span></h3><p data-es="Lista negra persistente con indulto individual o general. Si una regla desaparece del firewall, la aplicación la vuelve a poner." data-en="Persistent blacklist with single or bulk pardons. If a firewall rule goes missing, the application puts it back.">Lista negra persistente con indulto individual o general. Si una regla desaparece del firewall, la aplicación la vuelve a poner.</p></div>
+
+      <div class="card reveal"><h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3.5 13V5.5l4-2.5 4 2.5V13"/><path d="M6.5 13v-3h3v3"/></svg></span><span data-es="Portal web de archivos" data-en="Web file portal">Portal web de archivos</span></h3><p data-es="La carpeta compartida se abre en el navegador del móvil. Subida múltiple en flujo continuo (películas de varios GB sin llenar la memoria) y descarga con Range para ver vídeo sin bajarlo entero." data-en="The shared folder opens in the phone browser. Streaming multi-file upload (multi-GB movies without filling memory) and Range downloads for streaming video.">La carpeta compartida se abre en el navegador del móvil. Subida múltiple en flujo continuo (películas de varios GB sin llenar la memoria) y descarga con Range para ver vídeo sin bajarlo entero.</p></div>
+
+      <div class="card reveal"><h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M7 6h2M7 8h2M7 10h2M5 6h.01M5 8h.01M5 10h.01" stroke-linecap="round"/></svg></span><span data-es="Servidor FTP" data-en="FTP server">Servidor FTP</span></h3><p data-es="FTP pasivo en el puerto 2121, con jaula de rutas y solo descarga por defecto. Para lo que no funciona con un navegador." data-en="Passive FTP on port 2121, with a path jail and download-only by default. For the clients a browser cannot satisfy.">FTP pasivo en el puerto 2121, con jaula de rutas y solo descarga por defecto. Para lo que no funciona con un navegador.</p></div>
+
+      <div class="card reveal"><h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="2.5" width="4" height="4"/><rect x="9.5" y="2.5" width="4" height="4"/><rect x="2.5" y="9.5" width="4" height="4"/><path d="M9.5 9.5h4v4h-4z" stroke-dasharray="1.6 1.6"/></svg></span><span data-es="Código QR" data-en="QR code">Código QR</span></h3><p data-es="Codificador propio (Reed-Solomon, máscara elegida por penalización) para entrar sin teclear nada, y botón de copiar enlace para quien prefiera pegar la dirección." data-en="Its own encoder (Reed-Solomon, mask chosen by penalty) so nobody types anything, plus a copy-link button for those who prefer pasting.">Codificador propio (Reed-Solomon, máscara elegida por penalización) para entrar sin teclear nada, y botón de copiar enlace para quien prefiera pegar la dirección.</p></div>
+
+      <div class="card reveal"><h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M2.5 8h11M8 2.5c3 3 3 8 0 11M8 2.5c-3 3-3 8 0 11"/></svg></span><span data-es="Compartir internet (opcional)" data-en="Internet sharing (optional)">Compartir internet (opcional)</span></h3><p data-es="Si el equipo tiene salida a internet, se puede repartir desde la propia interfaz. Nunca es automático y se desactiva siempre al detener la red." data-en="If the machine has an uplink, it can be shared from the interface itself. It is never automatic and is always turned off when the network stops.">Si el equipo tiene salida a internet, se puede repartir desde la propia interfaz. Nunca es automático y se desactiva siempre al detener la red.</p></div>
+
+      <div class="card reveal"><h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 5.5c3-3.5 8-3.5 11 0-2 4-9 4-11 0Z"/><circle cx="8" cy="5.5" r="1.4"/><path d="M3.5 11.5c2 2 7 2 9 0"/></svg></span><span data-es="Modo Fantasma" data-en="Ghost mode">Modo Fantasma</span></h3><p data-es="La “X” no cierra: destruye la interfaz, compacta la memoria y deja la red, el radar y los archivos funcionando desde la bandeja. El consumo real se muestra en el diagnóstico, sin prometer cifras que .NET Framework no puede cumplir." data-en="The “X” does not close: it destroys the UI, compacts memory and keeps the network, radar and files running from the tray. Real usage is shown in diagnostics, with no numbers .NET Framework cannot deliver.">La “X” no cierra: destruye la interfaz, compacta la memoria y deja la red, el radar y los archivos funcionando desde la bandeja. El consumo real se muestra en el diagnóstico, sin prometer cifras que .NET Framework no puede cumplir.</p></div>
+
+      <div class="card reveal"><h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 2.5 3 5v3.5c0 3 2.2 4.6 5 5.5 2.8-.9 5-2.5 5-5.5V5L8 2.5Z"/><path d="M6 8l1.6 1.6L10.5 6.5"/></svg></span><span data-es="Privilegios automáticos, sin trucos" data-en="Automatic rights, no tricks">Privilegios automáticos, sin trucos</span></h3><p data-es="El manifiesto pide administrador una sola vez al abrir, así que nunca hay errores por falta de permisos. No se implementa ningún bypass de UAC: eso es técnica de malware y rompe el modelo de seguridad de Windows." data-en="The manifest requests administrator once at launch, so permission errors never appear. There is no UAC bypass: that is malware technique and it breaks the Windows security model.">El manifiesto pide administrador una sola vez al abrir, así que nunca hay errores por falta de permisos. No se implementa ningún bypass de UAC: eso es técnica de malware y rompe el modelo de seguridad de Windows.</p></div>
+
+      <div class="card reveal"><h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 3.5h10M3 8h10M3 12.5h6"/></svg></span><span data-es="Diagnóstico copiable" data-en="Copyable diagnostics">Diagnóstico copiable</span></h3><p data-es="Un informe con lo que este equipo puede y no puede hacer (versión real de Windows, radios, motores, base de fabricantes, consumo), más registro rotado en %LOCALAPPDATA%\NetForge\logs." data-en="A report of what this machine can and cannot do (real Windows version, radios, engines, vendor database, memory usage), plus rotating logs in %LOCALAPPDATA%\NetForge\logs.">Un informe con lo que este equipo puede y no puede hacer (versión real de Windows, radios, motores, base de fabricantes, consumo), más registro rotado en %LOCALAPPDATA%\NetForge\logs.</p></div>
+    </div>
+  </section>
+
+  <!-- ================================================================= como -->
+  <section id="como" class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker" data-es="Cómo funciona" data-en="How it works">Cómo funciona</span>
+      <h2 data-es="Un sondeo, tres motores, un vigilante" data-en="One probe, three engines, one watchdog">Un sondeo, tres motores, un vigilante</h2>
+      <p class="lead" data-es="No hay lista de adaptadores compatibles: la aplicación sondea el equipo al arrancar, deduce qué puede hacer y ordena los motores según eso. Si el primero falla, prueba el siguiente y explica por qué falló cada uno." data-en="There is no list of supported adapters: the application probes the machine at startup, works out what it can do and orders the engines accordingly. If the first fails, it tries the next and reports why each one failed.">No hay lista de adaptadores compatibles: la aplicación sondea el equipo al arrancar, deduce qué puede hacer y ordena los motores según eso. Si el primero falla, prueba el siguiente y explica por qué falló cada uno.</p>
+    </div>
+
+    <div class="chain reveal">
+      <div class="node"><b data-es="1 · Wi-Fi Direct (grupo autónomo)" data-en="1 · Wi-Fi Direct (autonomous group)">1 · Wi-Fi Direct (grupo autónomo)</b><span data-es="El motor preferido: emite un SSID normal para cualquier móvil y reparte direcciones por sí mismo. Funciona sin internet, que es justo el caso difícil." data-en="The preferred engine: broadcasts a normal SSID for any phone and hands out addresses by itself. It works with no internet, the hard case.">El motor preferido: emite un SSID normal para cualquier móvil y reparte direcciones por sí mismo. Funciona sin internet, que es justo el caso difícil.</span></div>
+      <span class="arrow" aria-hidden="true">→</span>
+      <div class="node"><b data-es="2 · Punto de acceso móvil de Windows" data-en="2 · Windows mobile hotspot">2 · Punto de acceso móvil de Windows</b><span data-es="El único que Windows sabe enrutar de forma nativa para compartir internet, y el único que puede enumerar sus clientes con MAC confirmada por el sistema." data-en="The only one Windows can route natively to share internet, and the only one that can list its clients with a system-confirmed MAC.">El único que Windows sabe enrutar de forma nativa para compartir internet, y el único que puede enumerar sus clientes con MAC confirmada por el sistema.</span></div>
+      <span class="arrow" aria-hidden="true">→</span>
+      <div class="node"><b data-es="3 · Red hospedada (heredado)" data-en="3 · Hosted network (legacy)">3 · Red hospedada (heredado)</b><span data-es="Para equipos antiguos. Su estado se confirma leyendo la red hospedada desde wlanapi, nunca interpretando el texto de netsh, que sale traducido en cada Windows." data-en="For older machines. Its state is confirmed by reading the hosted network through wlanapi, never by parsing netsh output, which is localised on every Windows.">Para equipos antiguos. Su estado se confirma leyendo la red hospedada desde wlanapi, nunca interpretando el texto de netsh, que sale traducido en cada Windows.</span></div>
+    </div>
+
+    <div class="split" style="margin-top:30px">
+      <div class="reveal">
+        <h3 data-es="Auto-resurrección (Daemon Guard)" data-en="Auto-recovery (Daemon Guard)">Auto-resurrección (Daemon Guard)</h3>
+        <ul class="checklist">
+          <li data-es="Comprueba la red cada 2 segundos y la levanta sola si el driver cae, el adaptador se suspende o el equipo vuelve de hibernar." data-en="Checks the network every 2 seconds and raises it again if the driver dies, the adapter sleeps or the machine resumes.">Comprueba la red cada 2 segundos y la levanta sola si el driver cae, el adaptador se suspende o el equipo vuelve de hibernar.</li>
+          <li data-es="Espera creciente entre intentos, para no entrar en un bucle de reinicios que empeora la avería." data-en="Growing delay between attempts, so it never loops restarts into a worse failure.">Espera creciente entre intentos, para no entrar en un bucle de reinicios que empeora la avería.</li>
+          <li data-es="Sin solapamiento: una comprobación que tarda no se pisa con la siguiente." data-en="No overlap: a slow check never collides with the next one.">Sin solapamiento: una comprobación que tarda no se pisa con la siguiente.</li>
+          <li data-es="Si el usuario detiene la red a propósito, no la resucita. Distingue caída de decisión." data-en="If the user stopped the network on purpose, it does not resurrect it. It tells a crash from a decision.">Si el usuario detiene la red a propósito, no la resucita. Distingue caída de decisión.</li>
+          <li data-es="Se rinde con aviso tras varios fallos seguidos, en lugar de insistir en silencio." data-en="It gives up with a warning after several failures instead of insisting silently.">Se rinde con aviso tras varios fallos seguidos, en lugar de insistir en silencio.</li>
+        </ul>
+      </div>
+      <div class="reveal">
+        <h3 data-es="Radar y bloqueo" data-en="Radar and banning">Radar y bloqueo</h3>
+        <ul class="checklist">
+          <li data-es="Fuente principal: la tabla ARP del sistema (lo que la pila ya sabe, sin escanear la red)." data-en="Main source: the system ARP table (what the stack already knows, no network scanning).">Fuente principal: la tabla ARP del sistema (lo que la pila ya sabe, sin escanear la red).</li>
+          <li data-es="Refresco activo solo de los equipos ya vistos, cuyo ARP responde en milisegundos." data-en="Active refresh only for hosts already seen, whose ARP answers in milliseconds.">Refresco activo solo de los equipos ya vistos, cuyo ARP responde en milisegundos.</li>
+          <li data-es="Fabricante real desde la base OUI del IEEE dentro del ejecutable, sin consultar internet." data-en="Real vendor from the IEEE OUI database embedded in the executable, with no internet lookup.">Fabricante real desde la base OUI del IEEE dentro del ejecutable, sin consultar internet.</li>
+          <li data-es="Los móviles que aleatorizan su MAC por privacidad se detectan y se marcan como tales: no se inventa un fabricante." data-en="Phones that randomise their MAC for privacy are detected and labelled: no vendor is invented.">Los móviles que aleatorizan su MAC por privacidad se detectan y se marcan como tales: no se inventa un fabricante.</li>
+          <li data-es="El bloqueo se identifica por MAC y se aplica por IP: un reinicio del móvil no le devuelve el acceso." data-en="Bans are keyed by MAC and applied by IP: rebooting the phone does not give access back.">El bloqueo se identifica por MAC y se aplica por IP: un reinicio del móvil no le devuelve el acceso.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note warn reveal" style="margin-top:22px">
+      <p data-es-html="<strong>Y lo que no hace:</strong> el firewall de Windows (motor WFP) filtra por IP, puerto, protocolo y aplicación, nunca por dirección MAC. Por eso un bloqueo es “identificado por MAC, aplicado por IP”, y por eso esta herramienta no puede aislar el tráfico <em>entre dos clientes</em> de la misma red: son tramas de capa 2 que no pasan por la pila del PC. Aislar de verdad exigiría cuarentena ARP, una técnica agresiva que se descartó a propósito." data-en-html="<strong>And what it does not do:</strong> the Windows firewall (WFP engine) filters by IP, port, protocol and application, never by MAC address. That is why a ban is “keyed by MAC, applied by IP”, and why this tool cannot isolate traffic <em>between two clients</em> of the same network: those are layer-2 frames that never reach the PC stack. Real isolation would need ARP quarantine, an aggressive technique deliberately left out."><strong>Y lo que no hace:</strong> el firewall de Windows (motor WFP) filtra por IP, puerto, protocolo y aplicación, nunca por dirección MAC. Por eso un bloqueo es “identificado por MAC, aplicado por IP”, y por eso esta herramienta no puede aislar el tráfico <em>entre dos clientes</em> de la misma red: son tramas de capa 2 que no pasan por la pila del PC. Aislar de verdad exigiría cuarentena ARP, una técnica agresiva que se descartó a propósito.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================== uso -->
+  <section id="uso" class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker" data-es="Uso" data-en="Usage">Uso</span>
+      <h2 data-es="De cero a intranet en menos de un minuto" data-en="From zero to intranet in under a minute">De cero a intranet en menos de un minuto</h2>
+    </div>
+    <div class="split">
+      <ol class="steps reveal">
+        <li data-es-html="<strong>Ejecuta NetForge.exe</strong> y acepta el aviso de UAC una vez. Son necesarios para crear la red y tocar el firewall." data-en-html="<strong>Run NetForge.exe</strong> and accept the UAC prompt once. Administrator rights are needed to create the network and touch the firewall."><strong>Ejecuta NetForge.exe</strong> y acepta el aviso de UAC una vez. Son necesarios para crear la red y tocar el firewall.</li>
+        <li data-es-html="<strong>Escribe el nombre y la clave</strong> de la red y pulsa <em>Crear red</em>. La clave se genera aleatoria la primera vez si no escribes ninguna." data-en-html="<strong>Type the network name and passphrase</strong> and press <em>Start network</em>. A random passphrase is generated the first time if you leave it empty."><strong>Escribe el nombre y la clave</strong> de la red y pulsa <em>Crear red</em>. La clave se genera aleatoria la primera vez si no escribes ninguna.</li>
+        <li data-es-html="<strong>Pestaña Archivos:</strong> elige la carpeta a compartir y pulsa <em>Iniciar servidores</em>. Aparecen la dirección del portal y el código QR." data-en-html="<strong>Files tab:</strong> choose the folder to share and press <em>Start servers</em>. The portal address and the QR code appear."><strong>Pestaña Archivos:</strong> elige la carpeta a compartir y pulsa <em>Iniciar servidores</em>. Aparecen la dirección del portal y el código QR.</li>
+        <li data-es-html="<strong>Escanea el QR</strong> con el móvil, o usa <em>Copiar enlace</em> y pega la dirección. Sube y baja archivos por la red local a velocidad de Wi-Fi, sin datos móviles ni cables." data-en-html="<strong>Scan the QR</strong> with the phone, or use <em>Copy link</em> and paste the address. Upload and download over the local network at Wi-Fi speed, with no mobile data and no cables."><strong>Escanea el QR</strong> con el móvil, o usa <em>Copiar enlace</em> y pega la dirección. Sube y baja archivos por la red local a velocidad de Wi-Fi, sin datos móviles ni cables.</li>
+        <li data-es-html="<strong>Cierra la ventana:</strong> la aplicación pasa al Modo Fantasma y la red sigue activa. Doble clic en el icono de la bandeja para volver. <em>Salir del todo</em> lo apaga y avisa antes." data-en-html="<strong>Close the window:</strong> the app goes into Ghost mode and the network keeps running. Double-click the tray icon to come back. <em>Exit completely</em> shuts it down and asks first."><strong>Cierra la ventana:</strong> la aplicación pasa al Modo Fantasma y la red sigue activa. Doble clic en el icono de la bandeja para volver. <em>Salir del todo</em> lo apaga y avisa antes.</li>
+      </ol>
+      <div class="reveal">
+        <div class="card">
+          <h3 data-es="Direcciones que verás" data-en="The addresses you will see">Direcciones que verás</h3>
+          <pre class="block"><button class="copy" type="button" data-copy="http://192.168.137.1:8080/" data-es="Copiar" data-en="Copy">Copiar</button><code>Portal web   http://192.168.137.1:8080/
+Servidor FTP ftp://192.168.137.1:2121/
+Usuario FTP  netforge</code></pre>
+          <p class="muted" style="margin-top:12px" data-es="La dirección exacta depende del motor y del adaptador: la aplicación muestra la real en pantalla y en el código QR. Nunca hay direcciones fijas en el programa." data-en="The exact address depends on the engine and the adapter: the app shows the real one on screen and in the QR code. There are no hardcoded addresses in the program.">La dirección exacta depende del motor y del adaptador: la aplicación muestra la real en pantalla y en el código QR. Nunca hay direcciones fijas en el programa.</p>
+        </div>
+        <div class="note ok" style="margin-top:14px" data-es-html="<strong>Truco útil:</strong> con el portal puedes ver una película de 4 GB sin copiarla entera al móvil, porque la descarga admite <code>Range</code> y el reproductor pide solo los trozos que va a reproducir." data-en-html="<strong>Useful trick:</strong> with the portal you can watch a 4 GB movie without copying it to the phone, because downloads support <code>Range</code> and the player only requests the chunks it will play."><strong>Truco útil:</strong> con el portal puedes ver una película de 4 GB sin copiarla entera al móvil, porque la descarga admite <code>Range</code> y el reproductor pide solo los trozos que va a reproducir.</div>
+        <div class="note" style="margin-top:14px" data-es-html="<strong>Con una sola tarjeta inalámbrica</strong>, muchos drivers no permiten ser punto de acceso y cliente a la vez: al crear la red, tu conexión Wi-Fi habitual puede caerse. Se recupera al detener la red." data-en-html="<strong>With a single wireless card</strong>, many drivers cannot be both access point and client: creating the network may drop your usual Wi-Fi. It comes back when the network stops."><strong>Con una sola tarjeta inalámbrica</strong>, muchos drivers no permiten ser punto de acceso y cliente a la vez: al crear la red, tu conexión Wi-Fi habitual puede caerse. Se recupera al detener la red.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= compatibilidad -->
+  <section id="compatibilidad" class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker" data-es="Compatibilidad" data-en="Compatibility">Compatibilidad</span>
+      <h2 data-es="Se adapta al equipo, no al revés" data-en="It adapts to the machine, not the other way round">Se adapta al equipo, no al revés</h2>
+      <p class="lead" data-es="Requisitos mínimos: Windows 10 build 18362 (1903) o superior y .NET Framework 4.8, que ya viene de serie. Todo lo demás se sondea en el momento." data-en="Minimum requirements: Windows 10 build 18362 (1903) or later and .NET Framework 4.8, which ships with it. Everything else is probed on the spot.">Requisitos mínimos: Windows 10 build 18362 (1903) o superior y .NET Framework 4.8, que ya viene de serie. Todo lo demás se sondea en el momento.</p>
+    </div>
+
+    <h3 class="reveal" data-es="Lo que se sondea en cada arranque" data-en="What gets probed on every launch">Lo que se sondea en cada arranque</h3>
+    <div class="tbl-wrap reveal" style="margin-bottom:26px">
+      <table class="data">
+        <thead><tr>
+          <th data-es="Capacidad" data-en="Capability">Capacidad</th>
+          <th data-es="Cómo se comprueba" data-en="How it is checked">Cómo se comprueba</th>
+          <th data-es="Consecuencia" data-en="Consequence">Consecuencia</th>
+        </tr></thead>
+        <tbody>
+          <tr><td data-es="Versión de Windows" data-en="Windows version">Versión de Windows</td><td><code>RtlGetVersion</code> <span class="muted" data-es="(no Environment.OSVersion, que miente)" data-en="(not Environment.OSVersion, which lies)">(no Environment.OSVersion, que miente)</span></td><td data-es="Por debajo de 10.0.18362 avisa y sigue sin garantías" data-en="Below 10.0.18362 it warns and runs without guarantees">Por debajo de 10.0.18362 avisa y sigue sin garantías</td></tr>
+          <tr><td data-es="Interfaces Wi-Fi" data-en="Wi-Fi interfaces">Interfaces Wi-Fi</td><td><code>WlanEnumInterfaces</code> <span class="muted" data-es="de wlanapi" data-en="from wlanapi">de wlanapi</span></td><td data-es="Sin ninguna, no hay red inalámbrica posible" data-en="With none, no wireless network is possible">Sin ninguna, no hay red inalámbrica posible</td></tr>
+          <tr><td data-es="Radio Wi-Fi" data-en="Wi-Fi radio">Radio Wi-Fi</td><td data-es="API de radios de Windows" data-en="Windows radio API">API de radios de Windows</td><td data-es="Si está apagada, se avisa antes de intentar nada" data-en="If it is off, you are told before anything is attempted">Si está apagada, se avisa antes de intentar nada</td></tr>
+          <tr><td data-es="Wi-Fi Direct (grupo)" data-en="Wi-Fi Direct (group)">Wi-Fi Direct (grupo)</td><td data-es="Construcción de WiFiDirectAdvertisementPublisher" data-en="Constructing WiFiDirectAdvertisementPublisher">Construcción de WiFiDirectAdvertisementPublisher</td><td data-es="Habilita el motor que funciona sin internet" data-en="Enables the engine that works with no internet">Habilita el motor que funciona sin internet</td></tr>
+          <tr><td data-es="Red hospedada (Soft AP)" data-en="Hosted network (Soft AP)">Red hospedada (Soft AP)</td><td><code>WlanHostedNetworkQueryStatus</code></td><td data-es="Habilita el motor heredado" data-en="Enables the legacy engine">Habilita el motor heredado</td></tr>
+          <tr><td data-es="Punto de acceso moderno" data-en="Modern hotspot">Punto de acceso moderno</td><td data-es="Creación del gestor de tethering desde un perfil guardado" data-en="Creating the tethering manager from a saved profile">Creación del gestor de tethering desde un perfil guardado</td><td data-es="Compartir internet nativo y lista de clientes exacta" data-en="Native internet sharing and exact client list">Compartir internet nativo y lista de clientes exacta</td></tr>
+          <tr><td data-es="Servicio de uso compartido" data-en="Sharing service">Servicio de uso compartido</td><td><code>SharedAccess</code></td><td data-es="Necesario para repartir internet" data-en="Required to share internet">Necesario para repartir internet</td></tr>
+          <tr><td data-es="Perfiles de conexión" data-en="Connection profiles">Perfiles de conexión</td><td><code>GetConnectionProfiles</code></td><td data-es="Sin ninguno guardado, el motor moderno no puede crearse (Wi-Fi Direct sí)" data-en="With none saved, the modern engine cannot be created (Wi-Fi Direct can)">Sin ninguno guardado, el motor moderno no puede crearse (Wi-Fi Direct sí)</td></tr>
+          <tr><td data-es="Elevación" data-en="Elevation">Elevación</td><td data-es="Pertenencia del proceso a Administradores" data-en="Process membership in Administrators">Pertenencia del proceso a Administradores</td><td data-es="Sin ella, se avisa en la barra superior" data-en="Without it, the top bar says so">Sin ella, se avisa en la barra superior</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="reveal" data-es="Qué motor acaba usándose" data-en="Which engine ends up being used">Qué motor acaba usándose</h3>
+    <div class="tbl-wrap reveal">
+      <table class="data">
+        <thead><tr>
+          <th data-es="Escenario" data-en="Scenario">Escenario</th>
+          <th data-es="Motor" data-en="Engine">Motor</th>
+          <th data-es="Resultado" data-en="Result">Resultado</th>
+        </tr></thead>
+        <tbody>
+          <tr><td data-es="Wi-Fi Direct disponible (lo normal desde Windows 10)" data-en="Wi-Fi Direct available (the norm since Windows 10)">Wi-Fi Direct disponible (lo normal desde Windows 10)</td><td data-es="Grupo autónomo" data-en="Autonomous group">Grupo autónomo</td><td data-es="SSID visible para cualquier móvil, direcciones repartidas por el grupo, funciona sin internet" data-en="SSID visible to any phone, addresses handed out by the group, works with no internet">SSID visible para cualquier móvil, direcciones repartidas por el grupo, funciona sin internet</td></tr>
+          <tr><td data-es="Driver con Soft AP y hay internet" data-en="Driver with Soft AP and internet present">Driver con Soft AP y hay internet</td><td data-es="Punto de acceso moderno" data-en="Modern hotspot">Punto de acceso moderno</td><td data-es="SSID, reparto de internet nativo y lista de clientes confirmada por el sistema" data-en="SSID, native internet sharing and system-confirmed client list">SSID, reparto de internet nativo y lista de clientes confirmada por el sistema</td></tr>
+          <tr><td data-es="Solo red hospedada (Windows antiguos)" data-en="Hosted network only (older Windows)">Solo red hospedada (Windows antiguos)</td><td data-es="Modo heredado" data-en="Legacy mode">Modo heredado</td><td data-es="SSID visible; los clientes necesitan que se active compartir conexión para obtener dirección" data-en="SSID visible; clients need sharing enabled to get an address">SSID visible; los clientes necesitan que se active compartir conexión para obtener dirección</td></tr>
+          <tr><td data-es="Sin ninguna capacidad" data-en="No capability at all">Sin ninguna capacidad</td><td>—</td><td data-es="La aplicación dice el motivo concreto de cada motor, sin fallar en silencio" data-en="The app states the specific reason for each engine, never failing silently">La aplicación dice el motivo concreto de cada motor, sin fallar en silencio</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note reveal" style="margin-top:20px" data-es-html="<strong>Caso real comprobado:</strong> portátil con <strong>Intel Wireless-AC 9560</strong> en Windows 11 (build 29671). El sondeo dice: red hospedada <span class='pill no'>no</span>, Soft AP <span class='pill no'>no</span>, Wi-Fi Direct <span class='pill ok'>sí</span>, radio encendida. Motor elegido: <strong>Wi-Fi Direct</strong>. Es el caso que motivó que el motor heredado no fuera el principal. En ese mismo equipo, compartir internet puede no estar disponible porque el API de uso compartido no acepta adaptadores virtuales de Wi-Fi Direct: se intenta y, si el sistema lo rechaza, se informa con claridad." data-en-html="<strong>Real measured case:</strong> laptop with an <strong>Intel Wireless-AC 9560</strong> on Windows 11 (build 29671). The probe says: hosted network <span class='pill no'>no</span>, Soft AP <span class='pill no'>no</span>, Wi-Fi Direct <span class='pill ok'>yes</span>, radio on. Chosen engine: <strong>Wi-Fi Direct</strong>. This is the case that made the legacy engine a fallback instead of the main path. On that same machine internet sharing may be unavailable, because the sharing API rejects Wi-Fi Direct virtual adapters: it is attempted, and if the system refuses it is reported clearly."><strong>Caso real comprobado:</strong> portátil con <strong>Intel Wireless-AC 9560</strong> en Windows 11 (build 29671). El sondeo dice: red hospedada no, Soft AP no, Wi-Fi Direct sí, radio encendida. Motor elegido: Wi-Fi Direct.</div>
+  </section>
+
+  <!-- ============================================================== limites -->
+  <section id="limites" class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker" data-es="Límites conocidos" data-en="Known limits">Límites conocidos</span>
+      <h2 data-es="Lo que este programa no puede hacer" data-en="What this program cannot do">Lo que este programa no puede hacer</h2>
+      <p class="lead" data-es="Esta sección existe porque prometer de más es la forma más rápida de decepcionar. Todo lo que sigue está comprobado en el código o medido en una máquina real." data-en="This section exists because overpromising is the fastest way to disappoint. Everything below is either verified in the code or measured on a real machine.">Esta sección existe porque prometer de más es la forma más rápida de decepcionar. Todo lo que sigue está comprobado en el código o medido en una máquina real.</p>
+    </div>
+    <div class="cards">
+      <div class="card reveal"><h3 data-es="1 · El firewall no filtra por MAC" data-en="1 · The firewall does not filter by MAC">1 · El firewall no filtra por MAC</h3><p data-es="El motor WFP filtra por IP, puerto, protocolo y aplicación. Se resuelve identificando por MAC y aplicando por IP, y reescribiendo la regla cuando el intruso cambia de dirección." data-en="The WFP engine filters by IP, port, protocol and application. It is solved by keying on MAC and applying by IP, rewriting the rule when the intruder changes address.">El motor WFP filtra por IP, puerto, protocolo y aplicación. Se resuelve identificando por MAC y aplicando por IP, y reescribiendo la regla cuando el intruso cambia de dirección.</p></div>
+      <div class="card reveal"><h3 data-es="2 · No hay reservas DHCP" data-en="2 · There are no DHCP reservations">2 · No hay reservas DHCP</h3><p data-es="Ni ICS ni el servidor del grupo Wi-Fi Direct exponen una API de reservas. La “concesión fija” se implementa como baneo por MAC reaplicado en cada pasada del radar." data-en="Neither ICS nor the Wi-Fi Direct group DHCP exposes a reservation API. “Pinning a lease” is implemented as a MAC ban reapplied on every radar sweep.">Ni ICS ni el servidor del grupo Wi-Fi Direct exponen una API de reservas. La “concesión fija” se implementa como baneo por MAC reaplicado en cada pasada del radar.</p></div>
+      <div class="card reveal"><h3 data-es="3 · Compartir internet depende del driver" data-en="3 · Internet sharing depends on the driver">3 · Compartir internet depende del driver</h3><p data-es="Hace falta el motor de punto de acceso moderno. Si el driver no implementa Soft AP, Windows puede levantar el grupo Wi-Fi Direct, pero el API de uso compartido puede no aceptar ese adaptador virtual como conexión privada." data-en="It needs the modern hotspot engine. If the driver does not implement Soft AP, Windows can still raise the Wi-Fi Direct group, but the sharing API may refuse that virtual adapter as the private side.">Hace falta el motor de punto de acceso moderno. Si el driver no implementa Soft AP, Windows puede levantar el grupo Wi-Fi Direct, pero el API de uso compartido puede no aceptar ese adaptador virtual como conexión privada.</p></div>
+      <div class="card reveal"><h3 data-es="4 · “Menos de 10 MB de RAM” no es posible" data-en="4 · “Under 10 MB of RAM” is not possible">4 · “Menos de 10 MB de RAM” no es posible</h3><p data-es="Una aplicación .NET Framework sobre WinForms tiene un suelo práctico de 12 a 25 MB incluso con la interfaz destruida: el runtime pesa eso antes de ejecutar una línea. En su lugar, el Modo Fantasma compacta la memoria y muestra el consumo real medido." data-en="A .NET Framework WinForms app has a practical floor of 12 to 25 MB even with the UI destroyed: the runtime weighs that before running a single line. Instead, Ghost mode compacts memory and shows the real measured usage.">Una aplicación .NET Framework sobre WinForms tiene un suelo práctico de 12 a 25 MB incluso con la interfaz destruida: el runtime pesa eso antes de ejecutar una línea. En su lugar, el Modo Fantasma compacta la memoria y muestra el consumo real medido.</p></div>
+      <div class="card reveal"><h3 data-es="5 · Los móviles aleatorizan su MAC" data-en="5 · Phones randomise their MAC">5 · Los móviles aleatorizan su MAC</h3><p data-es="Cuando el bit de administración local está activo, el fabricante no se puede deducir de ninguna base de datos del mundo, porque el prefijo es inventado. Se detecta y se dice “MAC aleatoria (privacidad)”." data-en="When the locally administered bit is set, the vendor cannot be derived from any database in the world, because the prefix is made up. It is detected and labelled “random MAC (privacy)”.">Cuando el bit de administración local está activo, el fabricante no se puede deducir de ninguna base de datos del mundo, porque el prefijo es inventado. Se detecta y se dice “MAC aleatoria (privacidad)”.</p></div>
+      <div class="card reveal"><h3 data-es="6 · Crear la red puede cortar tu Wi-Fi" data-en="6 · Creating the network may drop your Wi-Fi">6 · Crear la red puede cortar tu Wi-Fi</h3><p data-es="Con una sola tarjeta inalámbrica, muchos drivers no permiten ser punto de acceso y cliente a la vez. La conexión se recupera al detener la red." data-en="With a single wireless card, many drivers cannot be access point and client simultaneously. The connection comes back when the network stops.">Con una sola tarjeta inalámbrica, muchos drivers no permiten ser punto de acceso y cliente a la vez. La conexión se recupera al detener la red.</p></div>
+      <div class="card reveal"><h3 data-es="7 · El portal escucha solo en la red local" data-en="7 · The portal listens on the local network only">7 · El portal escucha solo en la red local</h3><p data-es="Se ata a la dirección del adaptador del punto de acceso, no a todas las interfaces: no queda expuesto por Ethernet, por una VPN ni desde fuera de la red." data-en="It binds to the access point adapter address, not to every interface: it is not exposed over Ethernet, over a VPN or from outside the network.">Se ata a la dirección del adaptador del punto de acceso, no a todas las interfaces: no queda expuesto por Ethernet, por una VPN ni desde fuera de la red.</p></div>
+      <div class="card reveal"><h3 data-es="8 · Windows anteriores a 10 1903" data-en="8 · Windows before 10 1903">8 · Windows anteriores a 10 1903</h3><p data-es="La aplicación arranca y avisa, pero el motor moderno de punto de acceso no existe ahí. Todo recae en el modo heredado, sin garantías." data-en="The app starts and warns, but the modern hotspot engine does not exist there. Everything falls back to legacy mode, with no guarantees.">La aplicación arranca y avisa, pero el motor moderno de punto de acceso no existe ahí. Todo recae en el modo heredado, sin garantías.</p></div>
+      <div class="card reveal"><h3 data-es="9 · La autocomprobación no levanta una red real" data-en="9 · The self-test does not raise a real network">9 · La autocomprobación no levanta una red real</h3><p data-es="Los tres motores, el Martillo y el reparto de internet necesitan administrador y hardware: su primer contacto con un equipo nuevo lo hace el usuario. Lo que sí se ejecuta de verdad está en la sección de verificación." data-en="The three engines, the Hammer and internet sharing need administrator rights and hardware: their first contact with a new machine is made by the user. What really runs is listed in the verification section.">Los tres motores, el Martillo y el reparto de internet necesitan administrador y hardware: su primer contacto con un equipo nuevo lo hace el usuario. Lo que sí se ejecuta de verdad está en la sección de verificación.</p></div>
+      <div class="card reveal"><h3 data-es="10 · Aislamiento entre clientes" data-en="10 · Client-to-client isolation">10 · Aislamiento entre clientes</h3><p data-es="Dos dispositivos de la misma red siguen viéndose entre ellos: sus tramas no pasan por el PC. Aislarlos exigiría cuarentena ARP, descartada a propósito por agresiva y frágil." data-en="Two devices on the same network still see each other: their frames never reach the PC. Isolating them would need ARP quarantine, deliberately left out as aggressive and fragile.">Dos dispositivos de la misma red siguen viéndose entre ellos: sus tramas no pasan por el PC. Aislarlos exigiría cuarentena ARP, descartada a propósito por agresiva y frágil.</p></div>
+    </div>
+  </section>
+
+  <!-- ========================================================= verificacion -->
+  <section id="verificacion" class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker" data-es="Verificación" data-en="Verification">Verificación</span>
+      <h2 data-es="195 comprobaciones antes de cada entrega" data-en="195 checks before every release">195 comprobaciones antes de cada entrega</h2>
+      <p class="lead" data-es="Compilar no demuestra nada. El proyecto ejecuta una autocomprobación sin privilegios que levanta servidores de verdad en 127.0.0.1, monta la ventana real y prueba los caminos de fallo. Se ejecuta en cada cambio y en cada pull request." data-en="Compiling proves nothing. The project runs an unprivileged self-test that raises real servers on 127.0.0.1, builds the actual window and exercises failure paths. It runs on every change and every pull request.">Compilar no demuestra nada. El proyecto ejecuta una autocomprobación sin privilegios que levanta servidores de verdad en 127.0.0.1, monta la ventana real y prueba los caminos de fallo. Se ejecuta en cada cambio y en cada pull request.</p>
+    </div>
+    <div class="cols">
+      <div class="reveal">
+        <h3 data-es="Se ejecuta de verdad" data-en="Really executed">Se ejecuta de verdad</h3>
+        <ul class="checklist">
+          <li data-es="Servidor FTP completo: LIST, RETR, STOR, SIZE y borrado prohibido, por canal de control y canal pasivo." data-en="Full FTP server: LIST, RETR, STOR, SIZE and refused deletion, over control and passive channels.">Servidor FTP completo: LIST, RETR, STOR, SIZE y borrado prohibido, por canal de control y canal pasivo.</li>
+          <li data-es="Portal web: descarga exacta, petición Range con respuesta 206, subida multipart y rechazo de ..%2F fuera de la carpeta." data-en="Web portal: exact download, Range request answered with 206, multipart upload and rejection of ..%2F outside the folder.">Portal web: descarga exacta, petición Range con respuesta 206, subida multipart y rechazo de ..%2F fuera de la carpeta.</li>
+          <li data-es="Radar con proveedores inyectados: identidad por MAC, fabricante, MAC aleatorizada, cliente sin MAC descartado y parada limpia." data-en="Radar with injected providers: MAC identity, vendor lookup, randomised MAC, junk client discarded and clean shutdown.">Radar con proveedores inyectados: identidad por MAC, fabricante, MAC aleatorizada, cliente sin MAC descartado y parada limpia.</li>
+          <li data-es="La ventana real, en español y en inglés: cinco pestañas, cada una pintada a un mapa de bits (una pestaña en blanco cuenta como fallo) y ningún texto sin traducir." data-en="The real window, in Spanish and English: five tabs, each rendered to a bitmap (a blank tab counts as a failure) and no untranslated text.">La ventana real, en español y en inglés: cinco pestañas, cada una pintada a un mapa de bits (una pestaña en blanco cuenta como fallo) y ningún texto sin traducir.</li>
+          <li data-es="Modo Fantasma: la interfaz se destruye, plegarla dos veces no rompe nada y reabrirla desde la bandeja la reconstruye." data-en="Ghost mode: the UI is destroyed, collapsing twice breaks nothing and reopening from the tray rebuilds it.">Modo Fantasma: la interfaz se destruye, plegarla dos veces no rompe nada y reabrirla desde la bandeja la reconstruye.</li>
+          <li data-es="Caminos de fallo de los motores: un arranque a medias se deshace, y una parada que Windows no confirma no se declara apagada." data-en="Engine failure paths: a half-finished start is undone, and a stop Windows does not confirm is never reported as off.">Caminos de fallo de los motores: un arranque a medias se deshace, y una parada que Windows no confirma no se declara apagada.</li>
+          <li data-es="Codificador QR verificado con un lector independiente (ZXing) durante la integración continua." data-en="QR encoder verified with an independent reader (ZXing) during continuous integration.">Codificador QR verificado con un lector independiente (ZXing) durante la integración continua.</li>
+          <li data-es="Aritmética de subred contrastada con la tabla ARP real del sistema, que es como se detectó un fallo de orden de bytes." data-en="Subnet maths cross-checked against the real system ARP table, which is how a byte-order bug was found.">Aritmética de subred contrastada con la tabla ARP real del sistema, que es como se detectó un fallo de orden de bytes.</li>
+        </ul>
+      </div>
+      <div class="reveal">
+        <h3 data-es="No se puede verificar sin administrador" data-en="Cannot be verified without administrator rights">No se puede verificar sin administrador</h3>
+        <ul class="checklist no">
+          <li data-es="Levantar la red real con los tres motores sobre hardware concreto." data-en="Raising the real network with the three engines on specific hardware.">Levantar la red real con los tres motores sobre hardware concreto.</li>
+          <li data-es="El Martillo escribiendo reglas reales en el firewall (requiere elevación)." data-en="The Hammer writing real firewall rules (requires elevation).">El Martillo escribiendo reglas reales en el firewall (requiere elevación).</li>
+          <li data-es="El reparto de internet a través del servicio de uso compartido." data-en="Internet sharing through the system sharing service.">El reparto de internet a través del servicio de uso compartido.</li>
+          <li data-es="El comportamiento de drivers que no implementan Soft AP." data-en="The behaviour of drivers that do not implement Soft AP.">El comportamiento de drivers que no implementan Soft AP.</li>
+        </ul>
+        <div class="note" style="margin-top:16px" data-es-html="Canales de conexión: el programa no abre ninguna conexión a internet. La única que puede existir es la del reparto de conexión que activa el usuario, y usa el servicio del propio Windows." data-en-html="Network connections: the program opens no internet connection at all. The only one that can exist is the connection sharing the user turns on, using Windows' own service.">Canales de conexión: el programa no abre ninguna conexión a internet.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================= compilar -->
+  <section id="compilar" class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker" data-es="Compilar y entregar" data-en="Build and ship">Compilar y entregar</span>
+      <h2 data-es="Sin Visual Studio, sin SDK, sin instalar nada" data-en="No Visual Studio, no SDK, nothing to install">Sin Visual Studio, sin SDK, sin instalar nada</h2>
+      <p class="lead" data-es="El script descarga un compilador Roslyn de NuGet, genera los datos que se pueden regenerar y compila contra las bibliotecas del propio Windows. En esta máquina no hay Visual Studio ni .NET SDK: el proyecto se construye igual." data-en="The script downloads a Roslyn compiler from NuGet, regenerates the data it can regenerate and compiles against the libraries Windows already ships. This machine has no Visual Studio and no .NET SDK: the project still builds.">El script descarga un compilador Roslyn de NuGet, genera los datos que se pueden regenerar y compila contra las bibliotecas del propio Windows. En esta máquina no hay Visual Studio ni .NET SDK: el proyecto se construye igual.</p>
+    </div>
+    <div class="split">
+      <div class="reveal">
+        <pre class="block"><button class="copy" type="button" data-copy="./build.ps1" data-es="Copiar" data-en="Copy">Copiar</button><code>./build.ps1              # compila, autocomprueba y deja bin\NetForge.exe
+./build.ps1 -SkipData    # no regenera OUI ni icono (usa los del repo)
+./scripts/check-qr.ps1   # verifica el QR con un lector independiente
+./scripts/package.ps1    # deja dist\NetForge-Studio-1.0.0-portable.zip</code></pre>
+        <div class="note ok" style="margin-top:14px" data-es-html="El paquete portable se comprueba a sí mismo: al terminar se abre el ZIP y se comprueba lo que hay dentro. Si falta la licencia, si se coló un <code>.dll</code> o si el ejecutable no coincide con el compilado, falla en vez de repartir algo incompleto." data-en-html="The portable package checks itself: when done it opens the ZIP and verifies its contents. If the licence is missing, a <code>.dll</code> sneaked in or the executable does not match the compiled one, it fails instead of shipping something incomplete.">El paquete portable se comprueba a sí mismo: al terminar se abre el ZIP y se comprueba lo que hay dentro.</div>
+      </div>
+      <div class="reveal">
+        <h3 data-es="Estructura del repositorio" data-en="Repository layout">Estructura del repositorio</h3>
+        <pre class="block"><code>src/
+  Program.cs            Instancia única, arranque silencioso
+  App/                  Servicios, bandeja, autocomprobación
+  Core/                 Sondeo, motores, Daemon Guard, ICS, ajustes
+  Net/                  Radar, tabla ARP, base OUI
+  Firewall/             El Martillo y los indultos
+  Ftp/  Web/  Qr/       Servidor FTP, portal y codificador QR
+  Native/               wlanapi, IP Helper, PsApi, WinRT
+build/                  Descarga del compilador, OUI e icono
+scripts/                Verificación QR y empaquetado
+docs/                   Arquitectura, compatibilidad, límites</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================== faq -->
+  <section id="faq" class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker" data-es="Preguntas" data-en="FAQ">Preguntas</span>
+      <h2 data-es="Lo que todo el mundo pregunta" data-en="What everybody asks">Lo que todo el mundo pregunta</h2>
+    </div>
+    <div class="reveal">
+      <details><summary data-es="¿Necesita internet en algún momento?" data-en="Does it need internet at any point?">¿Necesita internet en algún momento?</summary><p data-es="No. La red se crea sin conexión, la base de fabricantes va dentro del ejecutable y el portal no llama a ningún recurso externo (ni fuentes, ni scripts, ni CDN). La única conexión posible es la del reparto que activas tú." data-en="No. The network is created offline, the vendor database ships inside the executable and the portal calls no external resource (no fonts, no scripts, no CDN). The only possible connection is the sharing you turn on yourself.">No. La red se crea sin conexión, la base de fabricantes va dentro del ejecutable y el portal no llama a ningún recurso externo (ni fuentes, ni scripts, ni CDN). La única conexión posible es la del reparto que activas tú.</p></details>
+      <details><summary data-es="¿Por qué pide permisos de administrador?" data-en="Why does it request administrator rights?">¿Por qué pide permisos de administrador?</summary><p data-es="Crear el punto de acceso, escribir reglas en el firewall y compartir conexión son operaciones privilegiadas de Windows. El manifiesto pide el aviso de UAC una sola vez al abrir, así que después nunca hay errores por falta de permisos. No se usa ningún bypass de UAC: sería técnica de malware y rompería el modelo de seguridad del sistema." data-en="Creating the access point, writing firewall rules and sharing a connection are privileged Windows operations. The manifest asks for the UAC prompt once at launch, so permission errors never appear afterwards. No UAC bypass is used: that would be malware technique and would break the system security model.">Crear el punto de acceso, escribir reglas en el firewall y compartir conexión son operaciones privilegiadas de Windows. El manifiesto pide el aviso de UAC una sola vez al abrir, así que después nunca hay errores por falta de permisos.</p></details>
+      <details><summary data-es="¿Funciona en Windows 7, 8 u 8.1?" data-en="Does it work on Windows 7, 8 or 8.1?">¿Funciona en Windows 7, 8 u 8.1?</summary><p data-es="Arranca y lo avisa, pero el motor moderno de punto de acceso no existe ahí. Todo recae en la red hospedada clásica y, en ese modo, los clientes necesitan que se active compartir conexión para recibir dirección." data-en="It starts and says so, but the modern hotspot engine does not exist there. Everything falls back to the classic hosted network and, in that mode, clients need sharing enabled to receive an address.">Arranca y lo avisa, pero el motor moderno de punto de acceso no existe ahí. Todo recae en la red hospedada clásica.</p></details>
+      <details><summary data-es="¿Es legal levantar mi propia red?" data-en="Is raising my own network legal?">¿Es legal levantar mi propia red?</summary><p data-es="Es una herramienta local: tu equipo, tus dispositivos, tu red. Compartir una conexión de internet puede estar sujeto a las condiciones de tu operador, así que esa parte es decisión tuya y responsabilidad tuya. El programa no oculta su funcionamiento ni evita controles del sistema." data-en="It is a local tool: your machine, your devices, your network. Sharing an internet connection may be subject to your carrier's terms, so that part is your decision and your responsibility. The program hides nothing about what it does and circumvents no system control.">Es una herramienta local: tu equipo, tus dispositivos, tu red. Compartir una conexión de internet puede estar sujeto a las condiciones de tu operador, así que esa parte es decisión tuya y responsabilidad tuya.</p></details>
+      <details><summary data-es="¿Envía datos a algún sitio?" data-en="Does it send data anywhere?">¿Envía datos a algún sitio?</summary><p data-es="No hay telemetría, ni cuentas, ni nube. Todo lo que guarda (lista negra, preferencias, registro) se queda en %LOCALAPPDATA%\NetForge de tu propio equipo, en texto plano legible que puedes revisar y borrar." data-en="There is no telemetry, no accounts, no cloud. Everything it stores (blacklist, settings, log) stays in %LOCALAPPDATA%\NetForge on your own machine, as readable plain text you can inspect and delete.">No hay telemetría, ni cuentas, ni nube. Todo lo que guarda se queda en %LOCALAPPDATA%\NetForge de tu propio equipo, en texto plano legible.</p></details>
+      <details><summary data-es="¿Y si mi adaptador no puede?" data-en="What if my adapter cannot do it?">¿Y si mi adaptador no puede?</summary><p data-es="El panel de diagnóstico dice exactamente qué falla: versión real de Windows, interfaces, radios, Wi-Fi Direct, Soft AP, perfiles guardados y elevación. Con ese informe se sabe si falta un motor o si el hardware simplemente no puede." data-en="The diagnostics panel says exactly what fails: real Windows version, interfaces, radios, Wi-Fi Direct, Soft AP, saved profiles and elevation. That report tells whether an engine is missing or the hardware simply cannot.">El panel de diagnóstico dice exactamente qué falla: versión real de Windows, interfaces, radios, Wi-Fi Direct, Soft AP, perfiles guardados y elevación.</p></details>
+    </div>
+  </section>
+
+  <!-- ============================================================== descarga -->
+  <section id="descarga" class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker" data-es="Descarga" data-en="Download">Descarga</span>
+      <h2 data-es="Un ZIP, un ejecutable, ningún instalador" data-en="One ZIP, one executable, no installer">Un ZIP, un ejecutable, ningún instalador</h2>
+      <p class="lead" data-es="Dentro del paquete: NetForge.exe (786 KB), la licencia GPL-3.0, el historial de cambios, la documentación de límites y un LEEME con las instrucciones. Windows pedirá el aviso de UAC la primera vez; es lo único que hay que aceptar." data-en="Inside: NetForge.exe (786 KB), the GPL-3.0 licence, the changelog, the known-limits documentation and a readme with instructions. Windows will ask for the UAC prompt the first time; that is the only thing to accept.">Dentro del paquete: NetForge.exe (786 KB), la licencia GPL-3.0, el historial de cambios, la documentación de límites y un LEEME con las instrucciones.</p>
+    </div>
+    <div class="cta reveal">
+      <a class="btn primary" id="dl" href="#descarga">
+        <span data-es="Descargar NetForge-Studio-1.0.0-portable.zip" data-en="Download NetForge-Studio-1.0.0-portable.zip">Descargar NetForge-Studio-1.0.0-portable.zip</span>
+      </a>
+      <a class="btn ghost" id="repo" href="#descarga" data-es="Código fuente (GPL-3.0)" data-en="Source code (GPL-3.0)">Código fuente (GPL-3.0)</a>
+    </div>
+    <div class="cols">
+      <div class="card reveal">
+        <h3 data-es="Licencia" data-en="Licence">Licencia</h3>
+        <p data-es="GNU GPL v3 o posterior. Software libre, sin garantía: es una herramienta de red, y el uso que se haga de ella es responsabilidad de quien la ejecuta." data-en="GNU GPL v3 or later. Free software, no warranty: it is a networking tool, and how it is used is the responsibility of whoever runs it.">GNU GPL v3 o posterior. Software libre, sin garantía.</p>
+      </div>
+      <div class="card reveal">
+        <h3 data-es="Requisitos" data-en="Requirements">Requisitos</h3>
+        <ul>
+          <li data-es="Windows 10 1903 (build 18362) o superior" data-en="Windows 10 1903 (build 18362) or later">Windows 10 1903 (build 18362) o superior</li>
+          <li data-es=".NET Framework 4.8 (viene de serie)" data-en=".NET Framework 4.8 (ships with it)">.NET Framework 4.8 (viene de serie)</li>
+          <li data-es="Un adaptador Wi-Fi" data-en="A Wi-Fi adapter">Un adaptador Wi-Fi</li>
+          <li data-es="Permisos de administrador (una vez, al abrir)" data-en="Administrator rights (once, at launch)">Permisos de administrador (una vez, al abrir)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap cols">
+    <div>
+      <p><strong>NetForge Studio</strong> · <span data-es="Router local, radar de dispositivos y transferencia de archivos sin internet." data-en="Local router, device radar and file transfer with no internet.">Router local, radar de dispositivos y transferencia de archivos sin internet.</span></p>
+      <p class="muted" data-es="GPL-3.0-or-later · Sin telemetría · Los datos se quedan en tu equipo" data-en="GPL-3.0-or-later · No telemetry · Data stays on your machine">GPL-3.0-or-later · Sin telemetría · Los datos se quedan en tu equipo</p>
+    </div>
+    <div>
+      <p><strong data-es="Documentación" data-en="Documentation">Documentación</strong></p>
+      <p>
+        <a href="#compatibilidad" data-es="Compatibilidad" data-en="Compatibility">Compatibilidad</a> ·
+        <a href="#limites" data-es="Límites conocidos" data-en="Known limits">Límites conocidos</a> ·
+        <a href="#verificacion" data-es="Verificación" data-en="Verification">Verificación</a> ·
+        <a href="#compilar" data-es="Compilar" data-en="Build">Compilar</a> ·
+        <a href="#faq" data-es="Preguntas" data-en="FAQ">Preguntas</a>
+      </p>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ==========================================================================
+   NetForge Studio — sitio del proyecto.
+   Sin dependencias: traduccion por atributos, tema, indice con seguimiento de
+   scroll, botones de copiar y una simulacion del radar y del Martillo.
+   ========================================================================== */
+(function () {
+  "use strict";
+
+  /* -------------------------------------------------- enlaces del proyecto */
+  // Cambia solo estas dos constantes al publicar el repositorio.
+  var REPO = "https://github.com/TU-USUARIO/netforge-studio";
+  var RELEASE = REPO + "/releases/latest";
+
+  document.getElementById("repo").href = REPO;
+  document.getElementById("dl").href = RELEASE;
+
+  /* -------------------------------------------------------------- idioma */
+  var STORAGE_LANG = "netforge.lang";
+  var STORAGE_THEME = "netforge.theme";
+  var missing = [];
+
+  function stored(key) {
+    try { return window.localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function store(key, value) {
+    try { window.localStorage.setItem(key, value); } catch (e) { /* modo privado */ }
+  }
+
+  function applyLanguage(lang) {
+    document.documentElement.lang = lang;
+    var nodes = document.querySelectorAll("[data-es],[data-en],[data-es-html],[data-en-html]");
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      var text = node.getAttribute("data-" + lang);
+      var html = node.getAttribute("data-" + lang + "-html");
+      if (html !== null) {
+        node.innerHTML = html;
+      } else if (text !== null) {
+        node.textContent = text;
+      } else {
+        // Falta una traduccion: se deja el idioma por defecto y se avisa en consola
+        // para que no pase inadvertido. El propio proyecto se verifica asi.
+        missing.push(node.tagName.toLowerCase() + " sin data-" + lang);
+      }
+    }
+    document.getElementById("lang-label").textContent = lang === "es" ? "EN" : "ES";
+    store(STORAGE_LANG, lang);
+    if (missing.length) {
+      console.warn("Traducciones que faltan:", missing.join(" | "));
+    }
+  }
+
+  // El proyecto nace en espanol y su documentacion esta en espanol, asi que el idioma por
+  // defecto es el espanol: el ingles esta a un clic y se recuerda la eleccion. Se respeta la
+  // preferencia guardada para no pelearse con el visitante que ya eligio.
+  var saved = stored(STORAGE_LANG);
+  applyLanguage(saved === "en" ? "en" : "es");
+
+  document.getElementById("lang").addEventListener("click", function () {
+    applyLanguage(document.documentElement.lang === "es" ? "en" : "es");
+  });
+
+  /* --------------------------------------------------------------- tema */
+  var themeButton = document.getElementById("theme");
+  function applyTheme(theme) {
+    if (theme === "light") {
+      document.documentElement.setAttribute("data-theme", "light");
+      themeButton.textContent = "◑";
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+      themeButton.textContent = "◐";
+    }
+    store(STORAGE_THEME, theme);
+  }
+  applyTheme(stored(STORAGE_THEME) === "light" ? "light" : "dark");
+  themeButton.addEventListener("click", function () {
+    applyTheme(document.documentElement.hasAttribute("data-theme") ? "dark" : "light");
+  });
+
+  /* ------------------------------------------------- indice con scroll */
+  var links = Array.prototype.slice.call(document.querySelectorAll("nav.main a"));
+  var sections = links.map(function (link) {
+    return document.querySelector(link.getAttribute("href"));
+  }).filter(Boolean);
+
+  function markCurrent() {
+    var y = window.scrollY + 140;
+    var current = -1;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].offsetTop <= y) { current = i; }
+    }
+    links.forEach(function (link, i) {
+      link.setAttribute("aria-current", i === current ? "true" : "false");
+    });
+  }
+  window.addEventListener("scroll", markCurrent, { passive: true });
+  markCurrent();
+
+  /* --------------------------------------------------- copiar al pulsar */
+  function flash(button, ok) {
+    var original = button.getAttribute("data-" + document.documentElement.lang) || button.textContent;
+    button.textContent = ok ? "✓" : "×";
+    window.setTimeout(function () { button.textContent = original; }, 1200);
+  }
+
+  function copy(text, button) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { flash(button, true); },
+        function () { flash(button, false); });
+      return;
+    }
+    var area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(area);
+    flash(button, ok);
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".copy"), function (button) {
+    button.addEventListener("click", function () {
+      var code = button.parentNode.querySelector("code");
+      copy(button.getAttribute("data-copy") || (code ? code.textContent : ""), button);
+    });
+  });
+
+  /* --------------------------------------------------- aparicion suave */
+  var reveal = document.querySelectorAll(".reveal");
+  if ("IntersectionObserver" in window) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("in");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    Array.prototype.forEach.call(reveal, function (node) { observer.observe(node); });
+  } else {
+    Array.prototype.forEach.call(reveal, function (node) { node.classList.add("in"); });
+  }
+
+  /* --------------------------------------- simulacion del radar y martillo */
+  // Cuatro dispositivos de ejemplo, con fabricantes reales de la base OUI. Al pulsar
+  // "Banear" la fila se marca como bloqueada y se escribe en la consola lo que haria el
+  // firewall de verdad. Es una simulacion: el programa real escribe reglas con COM.
+  var devices = [
+    { ip: "192.168.137.2", mac: "48:51:C5:ED:33:11", vendor: "Intel Corporate", banned: false },
+    { ip: "192.168.137.3", mac: "F4:F5:D8:11:22:33", vendor: "Apple, Inc.", banned: false },
+    { ip: "192.168.137.4", mac: "B8:27:EB:12:34:56", vendor: "Raspberry Pi Foundation", banned: false },
+    { ip: "192.168.137.5", mac: "02:11:22:33:44:55", vendor: null, banned: false }
+  ];
+
+  var labels = {
+    es: { ban: "Banear", pardon: "Indultar", blocked: "bloqueado", online: "en línea", joined: "conectado", random: "MAC aleatoria (privacidad)" },
+    en: { ban: "Ban", pardon: "Pardon", blocked: "blocked", online: "online", joined: "joined", random: "random MAC (privacy)" }
+  };
+
+  var body = document.getElementById("rows");
+  var consoleBox = document.getElementById("console");
+  var log = [];
+
+  function say(text, kind) {
+    log.unshift('<i>' + new Date().toLocaleTimeString() + '</i> ' + (kind === "ok" ? "<b>" + text + "</b>" : text));
+    consoleBox.innerHTML = log.slice(0, 4).join("<br>");
+  }
+
+  function draw() {
+    var lang = document.documentElement.lang === "es" ? "es" : "en";
+    body.innerHTML = "";
+    devices.forEach(function (device, index) {
+      var row = document.createElement("tr");
+      if (device.banned) { row.className = "banned"; }
+      row.innerHTML = "<td>" + device.ip + "</td><td>" + device.mac + "</td><td>" +
+        (device.vendor || labels[lang].random) + "</td><td>" +
+        (device.banned ? labels[lang].blocked : labels[lang].online) + "</td>";
+      var cell = document.createElement("td");
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "hit" + (device.banned ? " pardon" : "");
+      button.textContent = device.banned ? labels[lang].pardon : labels[lang].ban;
+      button.addEventListener("click", function () {
+        device.banned = !device.banned;
+        if (device.banned) {
+          say(lang === "es"
+            ? "El Martillo: regla de entrada y salida creada para " + device.mac + " (" + device.ip + ")"
+            : "The Hammer: inbound and outbound rule created for " + device.mac + " (" + device.ip + ")", "ok");
+        } else {
+          say(lang === "es"
+            ? "Indulto concedido a " + device.mac + ": regla retirada del firewall"
+            : "Pardon granted to " + device.mac + ": rule removed from the firewall", "ok");
+        }
+        draw();
+      });
+      cell.appendChild(button);
+      row.appendChild(cell);
+      body.appendChild(row);
+    });
+    var banned = devices.filter(function (d) { return d.banned; }).length;
+    if (banned > 0) {
+      say(lang === "es"
+        ? "Dispositivos bloqueados ahora mismo: " + banned
+        : "Devices currently blocked: " + banned);
+    }
+  }
+
+  draw();
+  say(document.documentElement.lang === "es"
+    ? "Radar: 4 dispositivos detectados en 192.168.137.0/24"
+    : "Radar: 4 devices found on 192.168.137.0/24");
+
+  // El texto cambia de idioma: hay que redibujar la tabla simulada. Las lineas de registro ya
+  // escritas se quedan como estan, igual que en un registro de verdad: es historial, no etiquetas.
+  document.getElementById("lang").addEventListener("click", draw);
+})();
+</script>
+</body>
+</html>

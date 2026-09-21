@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: compilar
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    name: Windows (.NET Framework 4.8)
+    runs-on: windows-latest
+
+    steps:
+      - name: Descargar el codigo
+        uses: actions/checkout@v4
+
+      - name: Compilar y autocomprobar
+        shell: pwsh
+        run: ./build.ps1 -SkipData
+
+      # El codigo QR se verifica con un lector independiente (ZXing): si el codificador
+      # tuviera mal la mascara, la informacion de formato o el Reed-Solomon, esta lectura
+      # no devolveria el texto original.
+      - name: Verificar el codigo QR con un lector independiente
+        shell: pwsh
+        run: ./scripts/check-qr.ps1
+
+      # El sitio web se publica desde la misma carpeta que se comprueba aqui: un texto sin
+      # traducir o una dependencia externa se detecta en la pull request, no en Pages.
+      - name: Comprobar el sitio web
+        shell: pwsh
+        run: ./scripts/check-site.ps1
+
+      # El paquete portable se genera en cada cambio y no solo al publicar: asi una entrega
+      # rota (sin licencia, sin documentacion) se detecta en la pull request, no en la release.
+      - name: Empaquetar la version portable
+        shell: pwsh
+        run: ./scripts/package.ps1 -SkipBuild
+
+      - name: Guardar el ejecutable y el paquete
+        uses: actions/upload-artifact@v4
+        with:
+          name: NetForge-Studio
+          path: |
+            bin/NetForge.exe
+            dist/*.zip
+          if-no-files-found: error
+
+      - name: Guardar el informe de la autocomprobacion
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-autocomprobacion
+          path: ${{ runner.temp }}/netforge-selftest.txt
+          if-no-files-found: ignore

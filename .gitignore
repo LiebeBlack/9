@@ -1,0 +1,30 @@
+# Compilador y lector descargados por los scripts (nunca se versionan)
+build/tools/
+
+# Salidas de compilacion
+bin/
+dist/
+obj/
+build/obj/
+*.pdb
+*.zip
+
+# Entorno
+.vs/
+*.user
+*.suo
+Thumbs.db
+desktop.ini
+.freebuff/
+
+# Artefactos de las comprobaciones de desarrollo
+build/check-qr/*.exe
+build/check-qr/*.dll
+build/check-winrt/*.exe
+
+# Compilacion en carpeta alternativa (cuando el exe esta en uso)
+bin-verificacion/
+
+# Capturas y paginas de revision de la interfaz (se regeneran con NETFORGE_UI_DUMP)
+site/_rev/
+site/_rev*.html

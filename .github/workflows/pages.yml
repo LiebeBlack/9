@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# NetForge Studio - publicacion del sitio en GitHub Pages.
+#
+# El sitio es una sola pagina autocontenida, asi que publicarlo es copiar site/ tal cual: no
+# hay compilador, ni pasos de construccion, ni dependencias que puedan cambiar bajo los pies.
+# Antes de publicar se ejecuta la comprobacion del sitio (traducciones pareadas y cero
+# recursos externos): una pagina con un texto en el idioma equivocado no se sube.
+name: sitio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'scripts/check-site.ps1'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Publicar el sitio
+    runs-on: windows-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - name: Descargar el codigo
+        uses: actions/checkout@v4
+
+      - name: Comprobar el sitio
+        shell: pwsh
+        run: ./scripts/check-site.ps1
+
+      - name: Preparar el sitio
+        uses: actions/configure-pages@v5
+
+      - name: Empaquetar site/ como artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Publicar
+        id: deploy
+        uses: actions/deploy-pages@v4

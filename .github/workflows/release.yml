@@ -1,0 +1,58 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# NetForge Studio - publicacion del paquete portable.
+#
+# Se dispara al empujar una etiqueta v* (por ejemplo v1.0.0). Compila, pasa la
+# autocomprobacion, empaqueta y publica el ZIP como entrega de GitHub. Se usa la herramienta
+# oficial (gh) con el token del propio flujo: sin acciones de terceros que puedan cambiar
+# bajo los pies.
+#
+# La version del paquete sale del CHANGELOG, no de la etiqueta, y el script avisa si no
+# coinciden, para que no se publique un ZIP que dice una version distinta de la anunciada.
+name: publicar
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Paquete portable
+    runs-on: windows-latest
+
+    steps:
+      - name: Descargar el codigo
+        uses: actions/checkout@v4
+
+      - name: Compilar, autocomprobar y empaquetar
+        shell: pwsh
+        run: ./scripts/package.ps1
+
+      - name: Comprobar que la etiqueta y el historial dicen la misma version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'.TrimStart('v')
+          $zip = (Get-ChildItem dist/*.zip | Select-Object -First 1).Name
+          if ($zip -notmatch [regex]::Escape($tag)) {
+            throw "La etiqueta v$tag no coincide con el paquete $zip: revisa el CHANGELOG antes de publicar."
+          }
+          Write-Host "Etiqueta y paquete coinciden en la version $tag"
+
+      - name: Publicar la entrega
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" dist/*.zip --title "NetForge Studio ${{ github.ref_name }}" --generate-notes
+
+      - name: Guardar el paquete aunque no sea una etiqueta
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: NetForge-Studio-portable
+          path: dist/*.zip
+          if-no-files-found: error
