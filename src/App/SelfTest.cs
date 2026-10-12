@@ -1028,9 +1028,9 @@ namespace NetForge.App
                     return false;
                 }
 
-                form.PerformLayout();`r`n
+                form.PerformLayout();
 
-                System.Windows.Forms.Application.DoEvents();`r`n
+                System.Windows.Forms.Application.DoEvents();
 
                 Expect("la ventana tiene un tamano utilizable", form.Width >= 760 && form.Height >= 560);
                 Expect("la ventana tiene titulo", !string.IsNullOrEmpty(form.Text));
