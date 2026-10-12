@@ -26,6 +26,7 @@ New-Item -ItemType Directory -Force -Path $bin | Out-Null
 
 # Recursos. La base OUI viaja incrustada en el ejecutable como recurso de nombre NetForge.Oui.bin.gz.
 $embed = @()
+$icon = $null
 if (-not $SkipData) {
     $oui = Join-Path $root 'assets\oui.bin.gz'
     if (Test-Path $oui) {
@@ -79,14 +80,16 @@ $sourcesExe = @(
     'src\Ui\Strings.cs',
     'src\Ui\Theme.cs',
     'src\Web\FilePortal.cs'
-) | ForEach-Object { Join-Path $root $_ }Write-Host '[build] compilando NetForge.exe'
-    $refs = @($framework + '\System.dll', $framework + '\System.Core.dll', $framework + '\System.Drawing.dll', $framework + '\System.Windows.Forms.dll', $framework + '\System.Net.dll')
-    $cscArgs = @(-nologo, -target:exe, -langversion:latest, "-out=$exeOut", -platform:x64, "-win32manifest=src\App.manifest")
-    if ($icon) { $cscArgs += $icon }
-    $cscArgs += $embed + $sourcesExe
-    foreach ($r in $refs) { $cscArgs += "-r:$r" }
-    & $csc @cscArgs
-    if ($LASTEXITCODE -ne 0) { throw '[build] NetForge.exe no se compiló' }
+) | ForEach-Object { Join-Path $root $_ }
+
+Write-Host '[build] compilando NetForge.exe'
+$refs = @($framework + '\System.dll', $framework + '\System.Core.dll', $framework + '\System.Drawing.dll', $framework + '\System.Windows.Forms.dll', $framework + '\System.Net.dll')
+$cscArgs = @(-nologo, -target:'exe', -langversion:latest, '-out:' + $exeOut, -platform:x64, '-win32manifest:' + (Join-Path $root 'src\App.manifest'))
+if ($icon) { $cscArgs += $icon }
+$cscArgs += $embed + $sourcesExe
+foreach ($r in $refs) { $cscArgs += ('-r:' + $r) }
+& $csc @cscArgs
+if ($LASTEXITCODE -ne 0) { throw '[build] NetForge.exe no se compiló' }
 
 Write-Host "[build] NetForge.exe listo: $([math]::Round((Get-Item $exeOut).Length / 1KB)) KB"
 
@@ -124,14 +127,11 @@ if (-not $SkipSelfTest) {
         'src\Web\FilePortal.cs'
     ) | ForEach-Object { Join-Path $root $_ }
 
-    # El Autotest necesita System.Net.NetworkInformation (para comprobaciones de subred/ARP) y
-    # System.Net.Sockets. Se linkean tambien System.Configuration para System.Net.HttpListener si
-    # hiciera falta, pero netamente el portal usa HttpListener que entra por System.dll en Framework.
     Write-Host '[build] compilando NetForge.Autotest.exe'
     $refsTest = @($framework + '\System.dll', $framework + '\System.Core.dll', $framework + '\System.Drawing.dll', $framework + '\System.Windows.Forms.dll', $framework + '\System.Net.dll', $framework + '\System.Net.NetworkInformation.dll')
-    $cscArgsTest = @(-nologo, -target:exe, -langversion:latest, "-out=$autotestOut", -platform:x64)
+    $cscArgsTest = @(-nologo, -target:'exe', -langversion:latest, '-out:' + $autotestOut, -platform:x64)
     $cscArgsTest += $sourcesTest
-    foreach ($r in $refsTest) { $cscArgsTest += "-r:$r" }
+    foreach ($r in $refsTest) { $cscArgsTest += ('-r:' + $r) }
     & $csc @cscArgsTest
     if ($LASTEXITCODE -ne 0) { throw '[build] NetForge.Autotest.exe no se compiló' }
 
