@@ -337,6 +337,7 @@ namespace NetForge.Ui
         {
             TextBox box = new TextBox();
             box.Width = width;
+            box.MinimumSize = new Size(width, 24);
             StyleInput(box);
             box.Margin = new Padding(0, 5, 12, 4);
             return box;
@@ -347,6 +348,7 @@ namespace NetForge.Ui
             ComboBox combo = new ComboBox();
             combo.DropDownStyle = ComboBoxStyle.DropDownList;
             combo.Width = width;
+            combo.MinimumSize = new Size(width, 24);
             StyleInput(combo);
             combo.Margin = new Padding(0, 4, 12, 4);
             return combo;

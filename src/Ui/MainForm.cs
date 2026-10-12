@@ -365,13 +365,19 @@ namespace NetForge.Ui
             card.AutoSize = true;
             card.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             card.Radius = 12;
-            card.Padding = new Padding(16, 10, 16, 14);
+            card.Padding = new Padding(20, 20, 20, 20);
+            card.AccentStripe = true;
 
             TableLayoutPanel layout = new TableLayoutPanel();
-            layout.Dock = DockStyle.Top;
+            layout.Dock = DockStyle.Fill;
             layout.AutoSize = true;
             layout.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             layout.ColumnCount = 1;
+            layout.RowCount = 3;
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             layout.BackColor = Theme.Surface;
             layout.Margin = new Padding(0);
 
@@ -388,10 +394,18 @@ namespace NetForge.Ui
             TableLayoutPanel row = new TableLayoutPanel();
             row.AutoSize = true;
             row.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            row.Dock = DockStyle.Top;
+            row.Dock = DockStyle.Fill;
             row.ColumnCount = 4;
             row.BackColor = Theme.Surface;
-            row.Margin = new Padding(0, 0, 0, 4);
+            row.Margin = new Padding(0, 0, 0, 20);
+
+            // Las tres primeras columnas miden su contenido y la ultima se queda con lo que
+            // sobra. Sin esto explicito, con la ventana en su minimo la fila se hacia mas ancha
+            // que la tarjeta y la direccion de la red salia cortada a medias fuera del panel.
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
 
             row.Controls.Add(Theme.Logo(), 0, 0);
 
@@ -401,7 +415,7 @@ namespace NetForge.Ui
             titles.ColumnCount = 1;
             titles.RowCount = 2;
             titles.BackColor = Theme.Surface;
-            titles.Margin = new Padding(0, 0, 16, 0);
+            titles.Margin = new Padding(0, 0, 40, 0);
 
             Label title = new Label();
             title.Text = Strings.T("app.title");
@@ -416,7 +430,7 @@ namespace NetForge.Ui
             subtitle.Font = Theme.SmallFont;
             subtitle.ForeColor = Theme.TextMuted;
             subtitle.AutoSize = true;
-            subtitle.Margin = new Padding(0, 2, 0, 0);
+            subtitle.Margin = new Padding(0, 8, 0, 0);
             titles.Controls.Add(subtitle, 0, 1);
             row.Controls.Add(titles, 1, 0);
 
@@ -425,7 +439,7 @@ namespace NetForge.Ui
             _stateLabel.FillColor = Theme.SurfaceHigh;
             _stateLabel.DotColor = Theme.TextMuted;
             _stateLabel.InkColor = Theme.Text;
-            _stateLabel.Margin = new Padding(0, 4, 8, 0);
+            _stateLabel.Margin = new Padding(0, 16, 24, 0);
             row.Controls.Add(_stateLabel, 2, 0);
 
             _endpointLabel = Theme.Pill(string.Empty);
@@ -433,7 +447,10 @@ namespace NetForge.Ui
             _endpointLabel.Font = Theme.SmallFont;
             _endpointLabel.FillColor = Theme.AccentSoft;
             _endpointLabel.InkColor = Theme.Accent;
-            _endpointLabel.Margin = new Padding(0, 7, 0, 0);
+            _endpointLabel.Margin = new Padding(0, 16, 0, 0);
+            // Sin autoajuste ocupa su columna entera y el propio pintado recorta el texto con
+            // puntos: una direccion larga se corta con elegancia en vez de empujar la fila.
+            _endpointLabel.AutoSize = false;
             _endpointLabel.Visible = false;
             row.Controls.Add(_endpointLabel, 3, 0);
             return row;
@@ -444,38 +461,45 @@ namespace NetForge.Ui
             TableLayoutPanel form = new TableLayoutPanel();
             form.AutoSize = true;
             form.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            form.Dock = DockStyle.Top;
+            form.Dock = DockStyle.Fill;
             form.ColumnCount = 6;
+            form.RowCount = 2;
             form.BackColor = Theme.Surface;
-            form.Margin = new Padding(0, 6, 0, 0);
+            form.Margin = new Padding(0, 20, 0, 0);
+            form.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            form.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
             Label ssidCaption = Theme.Caption(Strings.T("network.ssid"));
-            ssidCaption.Margin = new Padding(0, 9, 8, 4);
+            ssidCaption.Margin = new Padding(0, 20, 16, 12);
             form.Controls.Add(ssidCaption, 0, 0);
 
-            _ssid = Theme.Input(180);
+            _ssid = Theme.Input(200);
+            _ssid.Margin = new Padding(0, 16, 20, 12);
             form.Controls.Add(_ssid, 1, 0);
             Theme.Tip(_ssid, Strings.T("tip.ssid"));
 
             Label passwordCaption = Theme.Caption(Strings.T("network.password"));
-            passwordCaption.Margin = new Padding(14, 9, 8, 4);
+            passwordCaption.Margin = new Padding(0, 20, 16, 12);
             form.Controls.Add(passwordCaption, 2, 0);
 
-            _password = Theme.Input(180);
+            _password = Theme.Input(200);
+            _password.Margin = new Padding(0, 16, 20, 12);
             _password.UseSystemPasswordChar = true;
             form.Controls.Add(_password, 3, 0);
             Theme.Tip(_password, Strings.T("tip.password"));
 
             _showPassword = Theme.Check(Strings.T("network.show"));
             _showPassword.CheckedChanged += delegate { _password.UseSystemPasswordChar = !_showPassword.Checked; };
+            _showPassword.Margin = new Padding(16, 16, 0, 12);
             form.Controls.Add(_showPassword, 4, 0);
             form.SetColumnSpan(_showPassword, 2);
 
             Label engineCaption = Theme.Caption(Strings.T("network.engine"));
-            engineCaption.Margin = new Padding(0, 9, 8, 4);
+            engineCaption.Margin = new Padding(0, 20, 16, 12);
             form.Controls.Add(engineCaption, 0, 1);
 
-            _engine = Theme.Combo(230);
+            _engine = Theme.Combo(250);
+            _engine.Margin = new Padding(0, 16, 20, 12);
             _engine.Items.Add(Strings.T("network.engine.auto"));
             _engine.Items.Add(Strings.T("network.engine.offgrid"));
             _engine.Items.Add(Strings.T("network.engine.sharing"));
@@ -486,16 +510,19 @@ namespace NetForge.Ui
             FlowLayoutPanel actions = new FlowLayoutPanel();
             actions.AutoSize = true;
             actions.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            actions.Margin = new Padding(0, 0, 0, 0);
+            actions.Margin = new Padding(0, 16, 0, 0);
+            actions.WrapContents = false;
 
             _startStop = Theme.Primary(Strings.T("network.create"));
             Theme.SetGlyph(_startStop, GlyphKind.Play);
             _startStop.Click += OnStartStop;
+            _startStop.Margin = new Padding(0, 0, 24, 0);
             Theme.Tip(_startStop, Strings.T("tip.start"));
             actions.Controls.Add(_startStop);
 
             _share = Theme.Check(Strings.T("network.share"));
             _share.CheckedChanged += OnShareChanged;
+            _share.Margin = new Padding(0, 16, 0, 0);
             Theme.Tip(_share, Strings.T("tip.share"));
             actions.Controls.Add(_share);
 
@@ -510,12 +537,14 @@ namespace NetForge.Ui
             options.AutoSize = true;
             options.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             options.WrapContents = true;
-            options.Dock = DockStyle.Top;
+            options.Dock = DockStyle.Fill;
             options.BackColor = Theme.Surface;
-            options.Margin = new Padding(0, 4, 0, 0);
+            options.Margin = new Padding(0, 20, 0, 0);
+            options.Padding = new Padding(0, 0, 0, 0);
 
             _autostart = Theme.Check(Strings.T("autostart"));
             _autostart.CheckedChanged += OnAutostartChanged;
+            _autostart.Margin = new Padding(0, 0, 40, 0);
             Theme.Tip(_autostart, Strings.T("tip.autostart"));
             options.Controls.Add(_autostart);
 
@@ -530,6 +559,7 @@ namespace NetForge.Ui
                 _context.Settings.StartMinimized = _startMinimized.Checked;
                 _context.Settings.Save();
             };
+            _startMinimized.Margin = new Padding(0, 0, 40, 0);
             options.Controls.Add(_startMinimized);
 
             _guardLabel = Theme.Pill(string.Empty);
@@ -539,7 +569,7 @@ namespace NetForge.Ui
             _guardLabel.FillColor = Color.Transparent;
             _guardLabel.Font = Theme.SmallFont;
             _guardLabel.BackColor = Theme.Surface;
-            _guardLabel.Margin = new Padding(10, 1, 6, 0);
+            _guardLabel.Margin = new Padding(20, 16, 16, 0);
             Theme.Tip(_guardLabel, Strings.T("tip.guard"));
             options.Controls.Add(_guardLabel);
 
@@ -550,7 +580,7 @@ namespace NetForge.Ui
             _bannerLabel.FillColor = Theme.WarningSoft;
             _bannerLabel.Font = Theme.SmallFont;
             _bannerLabel.BackColor = Theme.Surface;
-            _bannerLabel.Margin = new Padding(6, 1, 0, 0);
+            _bannerLabel.Margin = new Padding(16, 16, 0, 0);
             _bannerLabel.Visible = false;
             options.Controls.Add(_bannerLabel);
             return options;
@@ -583,20 +613,23 @@ namespace NetForge.Ui
             FlowLayoutPanel filterRow = new FlowLayoutPanel();
             filterRow.Dock = DockStyle.Top;
             filterRow.AutoSize = true;
+            filterRow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             filterRow.WrapContents = true;
             filterRow.BackColor = Theme.Background;
+            filterRow.Margin = new Padding(0, 8, 0, 0);
 
             Label filterCaption = Theme.Caption(Strings.T("clients.filter"));
-            filterCaption.Margin = new Padding(0, 9, 8, 4);
+            filterCaption.Margin = new Padding(0, 12, 12, 8);
             filterRow.Controls.Add(filterCaption);
 
-            _filter = Theme.Input(240);
+            _filter = Theme.Input(260);
             _filter.TextChanged += OnFilterChanged;
             Theme.Tip(_filter, Strings.T("tip.filter"));
             filterRow.Controls.Add(_filter);
 
             _clearFilter = Theme.Secondary(Strings.T("clients.clear"));
             Theme.SetGlyph(_clearFilter, GlyphKind.Clear);
+            _clearFilter.Margin = new Padding(0, 0, 12, 0);
             _clearFilter.Click += delegate
             {
                 _filter.Text = string.Empty;
@@ -611,14 +644,15 @@ namespace NetForge.Ui
             _clientsCount.FillColor = Color.Transparent;
             _clientsCount.Font = Theme.SmallFont;
             _clientsCount.BackColor = Theme.Background;
-            _clientsCount.Margin = new Padding(10, 3, 0, 0);
+            _clientsCount.Margin = new Padding(16, 8, 0, 0);
             filterRow.Controls.Add(_clientsCount);
 
             FlowLayoutPanel bar = new FlowLayoutPanel();
             bar.Dock = DockStyle.Bottom;
             bar.AutoSize = true;
+            bar.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             bar.BackColor = Theme.Background;
-            bar.Padding = new Padding(0, 4, 0, 0);
+            bar.Padding = new Padding(0, 8, 0, 0);
 
             // Resumen de un vistazo: tres cifras y un estado que llevan a la pestana de la que
             // hablan. Se rellenan en RefreshTiles, y solo escriben cuando el valor cambia: cada
@@ -629,30 +663,35 @@ namespace NetForge.Ui
             summary.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             summary.WrapContents = true;
             summary.BackColor = Theme.Background;
-            summary.Padding = new Padding(0, 0, 0, 10);
+            summary.Padding = new Padding(0, 0, 0, 12);
 
             _tileClients = Theme.Tile(Strings.T("tile.clients"));
+            _tileClients.Margin = new Padding(0, 0, 12, 0);
             _tileClients.Click += OnTileClients;
             Theme.Tip(_tileClients, Strings.T("tip.tileclients"));
             summary.Controls.Add(_tileClients);
 
             _tileNet = Theme.Tile(Strings.T("tile.network"));
+            _tileNet.Margin = new Padding(0, 0, 12, 0);
             _tileNet.Click += OnTileNetwork;
             Theme.Tip(_tileNet, Strings.T("tip.tilenetwork"));
             summary.Controls.Add(_tileNet);
 
             _tileFiles = Theme.Tile(Strings.T("tile.files"));
+            _tileFiles.Margin = new Padding(0, 0, 12, 0);
             _tileFiles.Click += OnTileFiles;
             Theme.Tip(_tileFiles, Strings.T("tip.tilefiles"));
             summary.Controls.Add(_tileFiles);
 
             _tileGuard = Theme.Tile(Strings.T("tile.guard"));
+            _tileGuard.Margin = new Padding(0, 0, 0, 0);
             _tileGuard.Click += OnTileGuard;
             Theme.Tip(_tileGuard, Strings.T("tip.tileguard"));
             summary.Controls.Add(_tileGuard);
 
             _hammer = Theme.DangerButton(Strings.T("clients.hammer"));
             Theme.SetGlyph(_hammer, GlyphKind.Shield);
+            _hammer.Margin = new Padding(0, 0, 12, 0);
             _hammer.Click += OnHammer;
             Theme.Tip(_hammer, Strings.T("tip.hammer"));
             bar.Controls.Add(_hammer);
@@ -778,11 +817,13 @@ namespace NetForge.Ui
             folderRow.AutoSize = true;
             folderRow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             folderRow.WrapContents = true;
-            _folder = Theme.Input(260);
+            folderRow.Margin = new Padding(0, 8, 0, 0);
+            _folder = Theme.Input(280);
             folderRow.Controls.Add(_folder);
             _browse = Theme.Secondary(Strings.T("files.browse"));
             Theme.SetGlyph(_browse, GlyphKind.Folder);
             _browse.Click += OnBrowse;
+            _browse.Margin = new Padding(0, 0, 12, 0);
             folderRow.Controls.Add(_browse);
             _openFolder = Theme.Secondary(Strings.T("files.openfolder"));
             Theme.SetGlyph(_openFolder, GlyphKind.Folder);
@@ -795,7 +836,9 @@ namespace NetForge.Ui
 
             FlowLayoutPanel switches = new FlowLayoutPanel();
             switches.AutoSize = true;
+            switches.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             switches.WrapContents = true;
+            switches.Margin = new Padding(0, 8, 0, 0);
             _upload = Theme.Check(Strings.T("files.allowupload"));
             _upload.CheckedChanged += OnShareOptionsChanged;
             Theme.Tip(_upload, Strings.T("tip.upload"));
@@ -822,10 +865,12 @@ namespace NetForge.Ui
             servers.AutoSize = true;
             servers.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             servers.WrapContents = true;
+            servers.Margin = new Padding(0, 8, 0, 0);
 
             _startServers = Theme.Primary(Strings.T("files.start"));
             Theme.SetGlyph(_startServers, GlyphKind.Play);
             _startServers.Click += OnStartServers;
+            _startServers.Margin = new Padding(0, 0, 12, 0);
             Theme.Tip(_startServers, Strings.T("tip.startservers"));
             servers.Controls.Add(_startServers);
 
@@ -843,12 +888,14 @@ namespace NetForge.Ui
             portalRow.AutoSize = true;
             portalRow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             portalRow.WrapContents = true;
+            portalRow.Margin = new Padding(0, 8, 0, 0);
             _portalLink = Theme.Link(string.Empty);
             _portalLink.LinkClicked += OnOpenLink;
             portalRow.Controls.Add(_portalLink);
             _copyLink = Theme.Secondary(Strings.T("files.copy"));
             Theme.SetGlyph(_copyLink, GlyphKind.Copy);
             _copyLink.Click += OnCopyLink;
+            _copyLink.Margin = new Padding(0, 0, 12, 0);
             Theme.Tip(_copyLink, Strings.T("tip.copylink"));
             portalRow.Controls.Add(_copyLink);
             body.Controls.Add(portalRow, 0, 3);
@@ -859,6 +906,7 @@ namespace NetForge.Ui
             ftpRow.AutoSize = true;
             ftpRow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             ftpRow.WrapContents = true;
+            ftpRow.Margin = new Padding(0, 8, 0, 0);
             _ftpLink = Theme.Link(string.Empty);
             _ftpLink.LinkClicked += OnOpenLink;
             ftpRow.Controls.Add(_ftpLink);
@@ -871,7 +919,7 @@ namespace NetForge.Ui
             _filesStats.FillColor = Color.Transparent;
             _filesStats.Font = Theme.SmallFont;
             _filesStats.BackColor = Theme.Surface;
-            _filesStats.Margin = new Padding(0, 8, 0, 0);
+            _filesStats.Margin = new Padding(0, 12, 0, 0);
             body.Controls.Add(_filesStats, 0, 6);
             return card;
         }
@@ -883,7 +931,7 @@ namespace NetForge.Ui
             card.Dock = DockStyle.Fill;
 
             TableLayoutPanel body = new TableLayoutPanel();
-            body.Dock = DockStyle.Top;
+            body.Dock = DockStyle.Fill;
             body.AutoSize = true;
             body.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             body.ColumnCount = 1;
@@ -892,14 +940,15 @@ namespace NetForge.Ui
             body.Controls.Add(Theme.Section(Strings.T("files.card.qr")), 0, 0);
 
             _qr = new PictureBox();
-            _qr.Size = new Size(228, 228);
+            _qr.Size = new Size(240, 240);
             _qr.SizeMode = PictureBoxSizeMode.Zoom;
             _qr.BackColor = Color.White;
-            _qr.Margin = new Padding(0, 6, 0, 8);
+            _qr.Margin = new Padding(0, 12, 0, 12);
             Theme.Tip(_qr, Strings.T("tip.qr"));
             body.Controls.Add(_qr, 0, 1);
 
             _qrHint = Theme.Note(string.Empty, 240);
+            _qrHint.Margin = new Padding(0, 8, 0, 0);
             body.Controls.Add(_qrHint, 0, 2);
             card.Controls.Add(body);
             return card;
@@ -913,7 +962,7 @@ namespace NetForge.Ui
         private static TableLayoutPanel CardBody(CardPanel card, string title)
         {
             TableLayoutPanel body = new TableLayoutPanel();
-            body.Dock = DockStyle.Top;
+            body.Dock = DockStyle.Fill;
             body.AutoSize = true;
             body.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             body.ColumnCount = 1;

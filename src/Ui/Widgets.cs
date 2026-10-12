@@ -67,6 +67,7 @@ namespace NetForge.Ui
             int midY = top + (h / 2);
 
             Theme.Prepare(graphics);
+            
             using (SolidBrush brush = new SolidBrush(ink))
             using (Pen pen = new Pen(ink, 1.6f))
             {
@@ -442,7 +443,7 @@ namespace NetForge.Ui
             AutoSize = true;
             ForeColor = Theme.Text;
             Font = Theme.BodyFont;
-            Margin = new Padding(4, 7, 14, 4);
+            Margin = new Padding(4, 10, 20, 8);
             Cursor = Cursors.Hand;
         }
 
@@ -568,8 +569,8 @@ namespace NetForge.Ui
                 ControlStyles.ResizeRedraw, true);
             BackColor = Theme.Surface;
             ForeColor = Theme.Text;
-            Padding = new Padding(14, 10, 14, 12);
-            Margin = new Padding(0, 0, 0, 10);
+            Padding = new Padding(16, 12, 16, 16);
+            Margin = new Padding(0, 0, 0, 12);
         }
 
         public int Radius
@@ -637,8 +638,8 @@ namespace NetForge.Ui
 
         protected override void OnPaintBackground(PaintEventArgs pevent)
         {
-            // Fill with the parent's background so the corners of the rounded card
-            // don't show the default system color underneath.
+            // Relleno con el color del fondo padre para que las esquinas redondeadas no dejen
+            // ver el color del sistema por debajo.
             Color behind = Parent != null ? Parent.BackColor : Theme.Background;
             using (SolidBrush brush = new SolidBrush(behind))
             {
@@ -771,8 +772,8 @@ namespace NetForge.Ui
             Graphics graphics = pevent.Graphics;
             Theme.Prepare(graphics);
 
-            // Clear with the parent's background so resizes and text changes don't leave
-            // ghost pixels behind.
+            // Relleno con el color del fondo padre para que un cambio de tamano o de texto no
+            // deje restos de la pintada anterior.
             Color behind = Parent != null ? Parent.BackColor : BackColor;
             using (SolidBrush bg = new SolidBrush(behind))
             {
@@ -1035,9 +1036,9 @@ namespace NetForge.Ui
 
         protected override void OnPaintBackground(PaintEventArgs pevent)
         {
-            // The area behind the tab strip would show the system default (light gray)
-            // without this override. Fill the entire control with the dark background first,
-            // then the tab drawing paints each tab on top.
+            // El fondo de la banda de pestanas se veria en gris claro de sistema sin este
+            // relleno: primero se pinta el fondo oscuro de toda la superficie y encima cada
+            // pestana con su propio dibujo.
             using (SolidBrush brush = new SolidBrush(Theme.Background))
             {
                 pevent.Graphics.FillRectangle(brush, ClientRectangle);

@@ -889,6 +889,20 @@ namespace NetForge.App
                 LogList.Classify("Warning: the sweep was skipped") == LogKind.Warning);
             Expect("una linea vacia no rompe el clasificador", LogList.Classify(string.Empty) == LogKind.Info);
             Expect("ni una linea nula", LogList.Classify(null) == LogKind.Info);
+
+            // Las tarjetas de resumen de la pestana de clientes se rellenan con claves de la
+            // tabla. Si falta alguna, en pantalla se veria "tile.clients" en lugar del estado:
+            // T devuelve la propia clave cuando no la encuentra.
+            string[] tileKeys = new string[]
+            {
+                "tile.clients", "tile.network", "tile.files", "tile.guard",
+                "tile.files.up", "tile.files.down", "tile.guard.armed", "tile.guard.paused"
+            };
+            foreach (string key in tileKeys)
+            {
+                Expect("el texto de la tarjeta '" + key + "' esta en la tabla",
+                    !string.Equals(Strings.T(key), key, StringComparison.Ordinal));
+            }
         }
 
         /// <summary>
@@ -1032,7 +1046,8 @@ namespace NetForge.App
             string[] mandatoryControls = new string[]
             {
                 "_filesAuto", "_notify", "_notifyJoin", "_ftpUser",
-                "_autostartState", "_repairAutostart", "_clientMenu"
+                "_autostartState", "_repairAutostart", "_clientMenu",
+                "_tileClients", "_tileNet", "_tileFiles", "_tileGuard"
             };
             int missingControls = 0;
             foreach (string controlName in mandatoryControls)
@@ -1044,7 +1059,7 @@ namespace NetForge.App
                 }
             }
 
-            Expect("la ventana tiene los controles nuevos de ajustes y clientes", missingControls == 0);
+            Expect("la ventana tiene los controles nuevos de ajustes, clientes y resumen", missingControls == 0);
 
             // El cazador de textos sin traducir tiene que distinguir una clave de un texto real:
             // si confundiera una direccion IP o una ruta con una clave, la prueba daria falsos fallos.
