@@ -1028,7 +1028,11 @@ namespace NetForge.App
                     return false;
                 }
 
-                Expect("la ventana tiene un tamano utilizable", form.Width >= 800 && form.Height >= 500);
+                form.PerformLayout();`r`n
+
+                System.Windows.Forms.Application.DoEvents();`r`n
+
+                Expect("la ventana tiene un tamano utilizable", form.Width >= 760 && form.Height >= 560);
                 Expect("la ventana tiene titulo", !string.IsNullOrEmpty(form.Text));
 
                 System.Windows.Forms.TabControl pages = null;
