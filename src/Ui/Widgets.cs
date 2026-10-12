@@ -428,6 +428,7 @@ namespace NetForge.Ui
         private const int KnobInset = 2;
         private const int Gap = 9;
         private bool _hover;
+        private bool _pressed;
 
         public FlatCheckBox()
         {
@@ -469,7 +470,12 @@ namespace NetForge.Ui
             Rectangle track = new Rectangle(0, top, TrackWidth, TrackHeight);
             Color trackFill = Checked ? Theme.AccentFill : Theme.SurfaceHigh;
             Color trackEdge = Checked ? Theme.AccentFill : (_hover && Enabled ? Theme.Accent : Theme.Border);
-            if (!Enabled)
+            if (_pressed && Enabled)
+            {
+                trackFill = Checked ? Theme.AccentFillPressed : Theme.Pressed;
+                trackEdge = Theme.Accent;
+            }
+            else if (!Enabled)
             {
                 trackFill = Theme.SurfaceAlt;
                 trackEdge = Theme.BorderSoft;
@@ -486,6 +492,11 @@ namespace NetForge.Ui
             using (SolidBrush knobBrush = new SolidBrush(knobInk))
             {
                 graphics.FillEllipse(knobBrush, knobLeft, track.Top + KnobInset, knob, knob);
+            }
+
+            if (Focused && Enabled)
+            {
+                Theme.StrokeRounded(graphics, Rectangle.Inflate(track, 2, 2), (TrackHeight / 2) + 2, Theme.Accent);
             }
 
             Color ink = Enabled ? Theme.Text : Theme.TextDim;
@@ -511,8 +522,27 @@ namespace NetForge.Ui
         protected override void OnMouseLeave(EventArgs e)
         {
             _hover = false;
+            _pressed = false;
             Invalidate();
             base.OnMouseLeave(e);
+        }
+
+        protected override void OnMouseDown(MouseEventArgs mevent)
+        {
+            if (mevent.Button == MouseButtons.Left)
+            {
+                _pressed = true;
+                Invalidate();
+            }
+
+            base.OnMouseDown(mevent);
+        }
+
+        protected override void OnMouseUp(MouseEventArgs mevent)
+        {
+            _pressed = false;
+            Invalidate();
+            base.OnMouseUp(mevent);
         }
 
         protected override void OnEnabledChanged(EventArgs e)
@@ -603,6 +633,17 @@ namespace NetForge.Ui
             }
 
             return new Size(width + Padding.Horizontal, height + Padding.Vertical);
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs pevent)
+        {
+            // Fill with the parent's background so the corners of the rounded card
+            // don't show the default system color underneath.
+            Color behind = Parent != null ? Parent.BackColor : Theme.Background;
+            using (SolidBrush brush = new SolidBrush(behind))
+            {
+                pevent.Graphics.FillRectangle(brush, ClientRectangle);
+            }
         }
 
         protected override void OnPaint(PaintEventArgs pevent)
@@ -701,7 +742,7 @@ namespace NetForge.Ui
                 width += 14;
             }
 
-            return new Size(width, Math.Max(20, text.Height + _inner.Vertical));
+            return new Size(width, Math.Max(22, text.Height + _inner.Vertical));
         }
 
         protected override void OnTextChanged(EventArgs e)
@@ -729,6 +770,15 @@ namespace NetForge.Ui
         {
             Graphics graphics = pevent.Graphics;
             Theme.Prepare(graphics);
+
+            // Clear with the parent's background so resizes and text changes don't leave
+            // ghost pixels behind.
+            Color behind = Parent != null ? Parent.BackColor : BackColor;
+            using (SolidBrush bg = new SolidBrush(behind))
+            {
+                graphics.FillRectangle(bg, ClientRectangle);
+            }
+
             Rectangle bounds = new Rectangle(0, 0, Width - 1, Height - 1);
             if (_fill.A > 0)
             {
@@ -781,7 +831,7 @@ namespace NetForge.Ui
                 ControlStyles.ResizeRedraw, true);
             BackColor = Theme.Background;
             ForeColor = Theme.Text;
-            Size = new Size(148, 58);
+            Size = new Size(160, 62);
             Margin = new Padding(0, 0, 10, 0);
             Cursor = Cursors.Hand;
             TabStop = false;
@@ -980,6 +1030,17 @@ namespace NetForge.Ui
             {
                 ItemSize = size2;
                 Invalidate();
+            }
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs pevent)
+        {
+            // The area behind the tab strip would show the system default (light gray)
+            // without this override. Fill the entire control with the dark background first,
+            // then the tab drawing paints each tab on top.
+            using (SolidBrush brush = new SolidBrush(Theme.Background))
+            {
+                pevent.Graphics.FillRectangle(brush, ClientRectangle);
             }
         }
 

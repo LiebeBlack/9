@@ -236,8 +236,10 @@ namespace NetForge.Ui
             form.ForeColor = Text;
             form.Font = BodyFont;
             form.MinimumSize = new Size(760, 560);
+            form.Size = new Size(980, 700);
             form.StartPosition = FormStartPosition.CenterScreen;
             EnableDoubleBuffer(form);
+            form.AutoScaleMode = AutoScaleMode.Dpi;
         }
 
         public static Label Section(string text)

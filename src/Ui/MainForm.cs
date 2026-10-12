@@ -312,7 +312,7 @@ namespace NetForge.Ui
             panel.Dock = DockStyle.Bottom;
             panel.AutoSize = true;
             panel.BackColor = Theme.Surface;
-            panel.Padding = new Padding(10, 4, 10, 4);
+            panel.Padding = new Padding(10, 6, 10, 4);
             panel.WrapContents = false;
 
             _statusMemory = StatusSegment(panel);
