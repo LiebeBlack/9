@@ -44,7 +44,9 @@ El servidor de archivos se ata a la dirección del adaptador del punto de acceso
 
 ## 9. Qué no puede verificar la autocomprobación
 
-Merece decirlo con la misma claridad que el resto: la autocomprobación (195 comprobaciones) **no** levanta una red real, ni toca el firewall, ni activa el uso compartido de conexión, porque todo eso exige permisos de administrador y hardware. Lo que sí se ejecuta de verdad, sin privilegios y sin tocar el sistema, es el servidor FTP y el portal web en `127.0.0.1`, el radar con proveedores inyectados, el pintado de la ventana real y los caminos de fallo de los motores (arranque a medias y parada no confirmada).
+Merece decirlo con la misma claridad que el resto: la autocomprobación (más de 230 comprobaciones) **no** levanta una red real, ni toca el firewall, ni activa el uso compartido de conexión, porque todo eso exige permisos de administrador y hardware. Lo que sí se ejecuta de verdad, sin privilegios y sin tocar el sistema, es el servidor FTP y el portal web en `127.0.0.1`, el radar con proveedores inyectados, el pintado de la ventana real y los caminos de fallo de los motores (arranque a medias y parada no confirmada).
+
+La comprobación de identidad visual mide la paleta y las formas, no la pantalla: calcula el contraste de cada texto sobre cada fondo y comprueba la geometría de los controles redondeados, pero no puede saber si un monitor concreto, un escalado del 150 % o el modo de contraste alto de Windows estropean la lectura. Las capturas de revisión de cada pestaña (`NETFORGE_UI_DUMP`) existen justo para eso: mirarlas con los ojos.
 
 Es decir: los tres motores de red, el Martillo y el reparto de internet están implementados y se activan por orden de preferencia, pero su primer contacto con un equipo nuevo lo hace el usuario. Si algo falla, el panel de diagnóstico y el registro dicen exactamente qué respondió el sistema.
 

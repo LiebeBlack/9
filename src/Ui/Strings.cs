@@ -167,6 +167,60 @@ namespace NetForge.Ui
             Add("autostart", "Arrancar al iniciar Windows (sin pedir permisos)", "Start with Windows (no prompt)");
             Add("exit.title", "Salir de NetForge Studio", "Exit NetForge Studio");
             Add("exit.text", "Se cerrara la red local y los servidores de archivos. Continuar?", "The local network and file servers will be closed. Continue?");
+
+            // --- Identidad visual: tarjetas, secciones y barra inferior.
+            Add("files.servers", "Servidores de archivos", "File servers");
+            Add("files.openfolder", "Abrir carpeta", "Open folder");
+            Add("files.connections", "Conexiones", "Connections");
+            Add("files.card.qr", "Escanea para abrir en el movil", "Scan to open on your phone");
+            Add("files.card.share", "Que se puede hacer", "What can be done");
+            Add("files.foldermissing", "La carpeta a compartir no existe o ya no esta disponible.", "The folder to share does not exist or is no longer available.");
+            Add("diag.save", "Guardar informe", "Save report");
+            Add("log.filter", "Filtrar", "Filter");
+            Add("log.warnonly", "Solo avisos y errores", "Warnings and errors only");
+            Add("status.servers", "Servidores", "Servers");
+            Add("status.up", "en marcha", "running");
+            Add("status.down", "parados", "stopped");
+            Add("status.clients", "Dispositivos", "Devices");
+            Add("tile.clients", "Equipos a la vista", "Devices in sight");
+            Add("tile.network", "Red local", "Local network");
+            Add("tile.files", "Archivos", "Files");
+            Add("tile.guard", "Vigilancia", "Guard");
+            Add("tile.files.up", "En marcha", "Running");
+            Add("tile.files.down", "Parado", "Stopped");
+            Add("tile.guard.armed", "Vigilando", "Watching");
+            Add("tile.guard.paused", "En pausa", "Paused");
+            Add("app.shortcuts", "Atajos: Ctrl+F buscar dispositivos, F5 actualizar, Ctrl+S guardar los ajustes, Ctrl+1 a Ctrl+6 cambiar de pestana, Ctrl+E exportar la lista.", "Shortcuts: Ctrl+F search devices, F5 refresh, Ctrl+S save settings, Ctrl+1 to Ctrl+6 switch tab, Ctrl+E export the list.");
+            Add("app.logfilter", "El registro guarda todo; aqui se puede dejar a la vista solo lo que importa.", "The log keeps everything; here you can leave only what matters in view.");
+
+            // --- Avisos emergentes.
+            Add("tip.ssid", "Nombre que veran los moviles al conectarse. Maximo 32 bytes.", "The name phones will see when they connect. At most 32 bytes.");
+            Add("tip.password", "Al menos 8 caracteres. Se guarda en un fichero de texto que puedes editar a mano.", "At least 8 characters. It is stored in a plain text file you can edit by hand.");
+            Add("tip.engine", "Automatico elige el mejor motor disponible en este equipo; los demas fuerzan uno concreto.", "Automatic picks the best engine available on this machine; the others force a specific one.");
+            Add("tip.tileclients", "Cuantos equipos se ven ahora mismo. Pulsa para ir a la lista.", "How many devices are visible right now. Click to jump to the list.");
+            Add("tip.tilenetwork", "Estado de la red local. Pulsa para ver los controles.", "Local network state. Click to see the controls.");
+            Add("tip.tilefiles", "Si el portal y el FTP estan levantados. Pulsa para ir a Archivos.", "Whether the portal and FTP are up. Click to jump to Files.");
+            Add("tip.tileguard", "El vigilante devuelve la red a su sitio si se cae. Pulsa para verlo.", "The watcher puts the network back if it drops. Click to see it.");
+            Add("tip.start", "Levanta o apaga la red local. Apagarla no cierra la ventana.", "Starts or stops the local network. Stopping it does not close the window.");
+            Add("tip.share", "Reparte la conexion de internet por la red local con el servicio de Windows.", "Shares the internet connection over the local network using the Windows service.");
+            Add("tip.guard", "El vigilante vuelve a levantar la red si el controlador la tira o el equipo se suspende.", "The watcher brings the network back up if the driver drops it or the machine sleeps.");
+            Add("tip.autostart", "Crea una tarea programada con privilegios altos: arranca contigo sin pedir permisos.", "Creates a scheduled task with high privileges: it starts with you without asking for permission.");
+            Add("tip.filter", "Busca por IP, MAC, fabricante, nombre o estado.", "Search by IP, MAC, vendor, hostname or state.");
+            Add("tip.clients", "Doble clic en un equipo para abrir su direccion en el navegador; con el boton derecho, el resto de acciones.", "Double-click a device to open its address in the browser; right-click for the other actions.");
+            Add("tip.hammer", "Bloquea en el firewall el dispositivo elegido, de entrada y de salida.", "Blocks the selected device in the firewall, inbound and outbound.");
+            Add("tip.export", "Guarda la lista de dispositivos en un CSV para abrirlo en otra herramienta.", "Saves the device list as a CSV to open it in another tool.");
+            Add("tip.upload", "Sin esto, los moviles solo pueden descargar; con esto, tambien dejar archivos.", "Without this, phones can only download; with it, they can also leave files.");
+            Add("tip.delete", "Permite borrar archivos desde el portal y el FTP. Solo para redes de confianza.", "Lets files be deleted from the portal and FTP. Only for trusted networks.");
+            Add("tip.startservers", "Levanta el portal web y el FTP sobre la red local, en los puertos de Ajustes.", "Starts the web portal and FTP over the local network, on the ports from Settings.");
+            Add("tip.openfolder", "Abre la carpeta compartida en el Explorador de Windows.", "Opens the shared folder in Windows Explorer.");
+            Add("tip.copylink", "Copia la direccion del portal para pegarla en otro equipo.", "Copies the portal address to paste it on another device.");
+            Add("tip.savereport", "Guarda el informe de diagnostico en un fichero de texto.", "Saves the diagnostics report to a text file.");
+            Add("tip.refreshdiag", "Vuelve a tomar la foto de este equipo: adaptadores, puertos, reglas y memoria.", "Takes a fresh snapshot of this machine: adapters, ports, rules and memory.");
+            Add("tip.savelog", "Escribe el registro en un fichero de texto.", "Writes the activity log to a text file.");
+            Add("tip.openlog", "Abre la carpeta donde se guardan los registros.", "Opens the folder where the logs are kept.");
+            Add("tip.logfilter", "Escribe una palabra para dejar solo las lineas que la contengan.", "Type a word to keep only the lines that contain it.");
+            Add("tip.warnonly", "Oculta las lineas rutinarias y deja avisos y errores.", "Hides routine lines and leaves warnings and errors.");
+            Add("tip.qr", "El movil abre el portal con la camara, sin teclear direcciones.", "The phone opens the portal with its camera, without typing addresses.");
         }
 
         private static void Add(string key, string spanish, string english)

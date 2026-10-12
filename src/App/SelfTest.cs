@@ -96,6 +96,9 @@ namespace NetForge.App
             Section("Ajustes, idioma y filtro");
             TestSettings();
 
+            Section("Identidad visual");
+            TestTheme();
+
             Section("Motores: arranques y paradas a medias");
             TestEngineFailureCleanup();
 
@@ -768,6 +771,124 @@ namespace NetForge.App
                 Strings.ApplyLanguage(previousLanguage);
                 Cleanup(folder);
             }
+        }
+
+        /// <summary>
+        /// Identidad visual: lo que a ojo se escapa. El contraste de cada texto sobre cada fondo
+        /// se calcula con la formula de accesibilidad (WCAG 2.1) sobre la paleta real, de forma
+        /// que cambiar un color por capricho y dejar un rotulo ilegible haga fallar la
+        /// comprobacion. El liston son 4.5:1, que es lo que pide la norma para texto normal, y
+        /// por eso los grises de la paleta son mas claros de lo que pediria el gusto y no la
+        /// vista.
+        ///
+        /// Se comprueba tambien la geometria de las formas redondeadas (un radio imposible no
+        /// puede recortar el marco) y el clasificador de gravedad del registro, con lineas
+        /// reales en los dos idiomas.
+        /// </summary>
+        private static void TestTheme()
+        {
+            Expect("blanco sobre negro da el contraste maximo", Math.Abs(Theme.Contrast(System.Drawing.Color.White, System.Drawing.Color.Black) - 21.0) < 0.001);
+            Expect("un color consigo mismo no tiene contraste", Math.Abs(Theme.Contrast(Theme.Accent, Theme.Accent) - 1.0) < 0.0001);
+            Expect("el contraste es simetrico",
+                Math.Abs(Theme.Contrast(Theme.Text, Theme.Background) - Theme.Contrast(Theme.Background, Theme.Text)) < 0.0001);
+
+            System.Drawing.Color[] inks = new System.Drawing.Color[] { Theme.Text, Theme.TextMuted, Theme.TextDim };
+            string[] inkNames = new string[] { "texto principal", "texto secundario", "texto apagado" };
+            System.Drawing.Color[] surfaces = new System.Drawing.Color[]
+            {
+                Theme.Background, Theme.Surface, Theme.SurfaceAlt, Theme.SurfaceHigh
+            };
+            string[] surfaceNames = new string[] { "el fondo", "una tarjeta", "un campo", "una superficie alta" };
+
+            for (int ink = 0; ink < inks.Length; ink++)
+            {
+                for (int surface = 0; surface < surfaces.Length; surface++)
+                {
+                    double ratio = Theme.Contrast(inks[ink], surfaces[surface]);
+                    Expect(inkNames[ink] + " se lee sobre " + surfaceNames[surface] + " (" +
+                        ratio.ToString("0.00", CultureInfo.InvariantCulture) + ":1)",
+                        ratio >= 4.5);
+                }
+            }
+
+            Expect("el acento se lee sobre el fondo", Theme.Contrast(Theme.Accent, Theme.Background) >= 4.5);
+            Expect("el exito se lee sobre el fondo", Theme.Contrast(Theme.Success, Theme.Background) >= 4.5);
+            Expect("el aviso se lee sobre el fondo", Theme.Contrast(Theme.Warning, Theme.Background) >= 4.5);
+            Expect("el peligro se lee sobre el fondo", Theme.Contrast(Theme.Danger, Theme.Background) >= 4.5);
+
+            // Botones: el texto blanco tiene que leerse tambien con el raton encima y pulsados.
+            System.Drawing.Color[] fills = new System.Drawing.Color[]
+            {
+                Theme.AccentFill, Theme.AccentFillHover, Theme.AccentFillPressed,
+                Theme.DangerFill, Theme.DangerFillHover, Theme.DangerFillPressed
+            };
+            bool fillsReadable = true;
+            foreach (System.Drawing.Color fill in fills)
+            {
+                if (Theme.Contrast(Theme.OnAccent, fill) < 4.5)
+                {
+                    fillsReadable = false;
+                    Write("   relleno con poco contraste: " + fill.ToString());
+                }
+            }
+
+            Expect("el texto de los botones se lee en todos sus estados", fillsReadable);
+
+            // Capsulas de estado: tinta sobre la version suave del mismo color.
+            Expect("la capsula de exito se lee", Theme.Contrast(Theme.Success, Theme.SuccessSoft) >= 4.5);
+            Expect("la capsula de aviso se lee", Theme.Contrast(Theme.Warning, Theme.WarningSoft) >= 4.5);
+            Expect("la capsula de peligro se lee", Theme.Contrast(Theme.Danger, Theme.DangerSoft) >= 4.5);
+            Expect("la capsula de acento se lee", Theme.Contrast(Theme.Accent, Theme.AccentSoft) >= 4.5);
+
+            // Filas de las tablas: normal, alterna, resaltada y seleccionada.
+            Expect("el texto se lee en la fila alterna", Theme.Contrast(Theme.Text, Theme.GridAlt) >= 4.5);
+            Expect("el texto se lee en la fila resaltada", Theme.Contrast(Theme.Text, Theme.GridHover) >= 4.5);
+            Expect("el texto se lee en la fila seleccionada", Theme.Contrast(Theme.Text, Theme.GridSelection) >= 4.5);
+
+            // Los estados no pueden distinguirse solo por el brillo: hay gente que no ve el rojo.
+            double separation = Math.Abs(Theme.RelativeLuminance(Theme.Success) - Theme.RelativeLuminance(Theme.Danger));
+            Expect("el verde y el rojo no se distinguen solo por el brillo (" +
+                separation.ToString("0.00", CultureInfo.InvariantCulture) + ")", separation > 0.02);
+
+            // Formas redondeadas: el marco no puede quedar recortado ni desplazado.
+            using (System.Drawing.Drawing2D.GraphicsPath path = Theme.RoundedRect(new System.Drawing.Rectangle(0, 0, 100, 40), 8))
+            {
+                System.Drawing.RectangleF bounds = path.GetBounds();
+                Expect("la esquina redondeada respeta el marco",
+                    Math.Abs(bounds.X) < 0.5 && Math.Abs(bounds.Y) < 0.5 &&
+                    Math.Abs(bounds.Width - 100) < 0.5 && Math.Abs(bounds.Height - 40) < 0.5);
+            }
+
+            using (System.Drawing.Drawing2D.GraphicsPath path = Theme.RoundedRect(new System.Drawing.Rectangle(0, 0, 10, 10), 40))
+            {
+                System.Drawing.RectangleF bounds = path.GetBounds();
+                Expect("un radio mayor que la caja devuelve un rectangulo",
+                    Math.Abs(bounds.Width - 10) < 0.5 && Math.Abs(bounds.Height - 10) < 0.5);
+            }
+
+            Expect("mezclar sin cantidad no cambia el color", Theme.Blend(Theme.Accent, Theme.Danger, 0) == Theme.Accent);
+            Expect("mezclar del todo devuelve el segundo color", Theme.Blend(Theme.Accent, Theme.Danger, 1) == Theme.Danger);
+
+            // Dos tokens iguales significan matices perdidos sin que nadie se entere.
+            Expect("el fondo y las tres superficies son distintos",
+                Theme.Background != Theme.Surface && Theme.Surface != Theme.SurfaceAlt &&
+                Theme.SurfaceAlt != Theme.SurfaceHigh && Theme.Background != Theme.SurfaceHigh);
+            Expect("los tres tonos de texto son distintos",
+                Theme.Text != Theme.TextMuted && Theme.TextMuted != Theme.TextDim && Theme.Text != Theme.TextDim);
+
+            // Color por gravedad en el registro, con lineas reales y en los dos idiomas.
+            Expect("una linea corriente es informacion",
+                LogList.Classify("Red creada en 192.168.137.1") == LogKind.Info);
+            Expect("un error en espanol se detecta",
+                LogList.Classify("No se pudo abrir el portal") == LogKind.Error);
+            Expect("un error en ingles se detecta",
+                LogList.Classify("The firewall rule could not be created") == LogKind.Error);
+            Expect("un aviso en espanol se detecta",
+                LogList.Classify("Aviso: el sondeo se omite sin permisos") == LogKind.Warning);
+            Expect("un aviso en ingles se detecta",
+                LogList.Classify("Warning: the sweep was skipped") == LogKind.Warning);
+            Expect("una linea vacia no rompe el clasificador", LogList.Classify(string.Empty) == LogKind.Info);
+            Expect("ni una linea nula", LogList.Classify(null) == LogKind.Info);
         }
 
         /// <summary>

@@ -2,6 +2,27 @@
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
+## [Sin publicar]
+
+### Añadido
+
+- **Identidad visual de la ventana**, de la paleta al último control: cabecera en tarjeta con una marca dibujada en código (sin ficheros de imagen), cápsula de estado con punto de color y la dirección de la red al lado; pestañas planas que se reparten el ancho según su propio texto para que las seis quepan en la ventana mínima; botones redondeados con estado de ratón, foco y deshabilitado; casillas oscuras; tarjetas con borde suave en Archivos y Ajustes; barra inferior por tramos (memoria, puertos, servidores y dispositivos); y avisos emergentes con la paleta de la casa.
+- **Comprobación de contraste, con cuentas y no a ojo**: la autocomprobación calcula la relación de contraste (WCAG 2.1) de cada tono de texto sobre cada fondo, de los botones en todos sus estados y de las cápsulas de estado, y exige 4.5:1. Se comprueban además las formas redondeadas (un radio imposible no puede recortar el marco), los extremos de la mezcla de colores y el clasificador de gravedad del registro, con líneas reales en español y en inglés. Es la primera vez que un color de la interfaz se verifica con números.
+- **Registro legible**: color por gravedad (información, aviso, error), filtro de texto y casilla para dejar a la vista solo avisos y errores, sobre filas alternas.
+- **Pestaña de Clientes**: la caja de búsqueda lleva su etiqueta delante, el recuento va en una cápsula viva, la lista vacía se explica en gris y sin selección posible, y el doble clic abre el equipo en el navegador.
+- **Pestaña de Archivos**: tarjetas por grupo (carpeta, servidores, QR), botón para abrir la carpeta compartida en el Explorador y contadores de tráfico en una cápsula de color.
+- **Diagnóstico**: botón para guardar el informe en un fichero de texto, que es lo que se adjunta al pedir ayuda por un fallo.
+- **Atajos de teclado**: `Ctrl+F` buscar equipos, `Ctrl+E` exportar la lista, `Ctrl+S` guardar los ajustes, `F5` refrescar y `Ctrl+1` a `Ctrl+6` cambiar de pestaña. El título de la ventana muestra la red activa, útil cuando está detrás de otras.
+
+### Corregido
+
+- La cabecera era un panel que se repartía solo: con la ventana en su tamaño mínimo, el campo de la clave bajaba de línea y quedaba pegado a su etiqueta. Ahora es una rejilla alineada por columnas, y las filas estrechas se dejan envolver en vez de recortarse.
+- El código QR se volvía a codificar cada segundo y medio aunque la dirección del portal no hubiera cambiado: ahora solo se regenera cuando cambia lo que lleva dentro.
+- La lista de equipos se vaciaba y se volvía a llenar en cada auditoría del radar, perdiendo el desplazamiento y parpadeando. Ahora se actualizan solo las celdas que cambian, así que el orden elegido y la selección aguantan.
+- Los grises de la paleta no llegaban al listón de accesibilidad sobre las tarjetas (3.8:1 frente a los 4.5:1 que hacen falta): los tres tonos de texto se han aclarado lo justo, y el verde del botón principal se ha oscurecido para que el texto blanco se lea también con el ratón encima.
+- Las capturas de revisión de la interfaz (`NETFORGE_UI_DUMP`) se tomaban sin los estilos visuales de Windows y no enseñaban lo que ve el usuario: la autocomprobación carga ahora los mismos que la aplicación.
+- El README hablaba de «cinco pestañas» cuando la ventana tiene seis.
+
 ## [1.0.0] - 2026-09-21
 
 Primera versión completa y funcional.

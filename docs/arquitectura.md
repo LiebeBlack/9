@@ -20,8 +20,9 @@ src/
     NetForgeContext.cs    Dueño de los servicios; vive sin ventana (ApplicationContext)
     FileShareService.cs   FTP + portal + QR coordinados, reatados al renacer la red
     TrayIcon.cs           Icono de bandeja y avisos
-    SelfTest.cs           195 comprobaciones: lógica pura, servidores reales, radar,
-                          ventana real en dos idiomas y caminos de fallo de los motores
+    SelfTest.cs            Más de 230 comprobaciones: lógica pura, servidores reales, radar,
+                          identidad visual, ventana real en dos idiomas y caminos de fallo
+                          de los motores
 
   Core/
     CapabilityProbe.cs    Sondeo real de lo que puede hacer ESTE equipo
@@ -57,7 +58,37 @@ src/
   Ftp/, Web/, Qr/          Servidor FTP, portal HTTP y codificador QR propios
 
   Ui/                      Ventana, tema oscuro, textos ES/EN, registro
+    MainForm.cs           Panel de control: cabecera, seis pestañas, atajos y refresco
+    Theme.cs              Paleta, tipografía, formas redondeadas, contraste y fábricas
+    Widgets.cs            Controles dibujados a mano: botones, casillas, tarjetas, cápsulas,
+                          pestañas planas y lista del registro con color por gravedad
+    Strings.cs            Tabla de textos en español e inglés
+    Log.cs                Registro en memoria y en fichero rotado
 ```
+
+## Interfaz
+
+La ventana es un panel de control, no una demostración: cada decisión visual responde a algo
+que se rompía o no se leía.
+
+- **Controles dibujados a mano**. No hay diseñador de formularios (se compila con `csc`
+  directo) y tampoco se usan los controles de serie para lo que tiene carácter propio: botones
+  redondeados con estado de ratón, foco y deshabilitado; casillas oscuras; tarjetas con borde
+  suave; cápsulas de estado con punto de color; pestañas planas que miden su texto. El
+  resultado es el mismo con y sin estilos visuales de Windows, y por eso las capturas de
+  revisión (`NETFORGE_UI_DUMP`) sirven para lo que se ve en pantalla: la autocomprobación carga
+  los mismos estilos que la aplicación.
+- **El contraste se comprueba, no se intuye**. La paleta tiene tres tonos de texto y cuatro
+  fondos, y la autocomprobación calcula la relación de contraste (WCAG 2.1) de cada combinación,
+  de los botones en todos sus estados y de las cápsulas. El listón es 4.5:1: si alguien oscurece
+  un gris "porque queda bien", la comprobación falla antes que la vista del usuario.
+- **Nada se sale de la ventana mínima**. Las pestañas reparten el ancho disponible entre las
+  seis según su texto, y las filas que pueden quedar estrechas se dejan envolver: con la ventana
+  en su tamaño mínimo nada queda recortado.
+- **El refresco no molesta**. El radar repinta cada pocos segundos; la lista de equipos se
+  actualiza celda a celda cuando los equipos son los mismos (así no se pierde el orden elegido,
+  ni el desplazamiento, ni parpadea), y el código QR solo se vuelve a codificar cuando cambia la
+  dirección que lleva dentro.
 
 ## Selección de motor
 

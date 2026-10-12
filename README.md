@@ -33,6 +33,7 @@ Convertir un PC en punto de acceso es fácil hasta que Windows decide lo contrar
 | **Modo Fantasma** | La "X" no cierra: destruye la interfaz, compacta la memoria y deja la red y los archivos funcionando desde la bandeja del sistema. |
 | **Arranque silencioso** | Tarea programada con privilegios altos: arranca con Windows **sin pedir permisos cada vez**. |
 | **Diagnóstico** | Panel copiable con lo que este equipo puede y no puede hacer, más registro rotado en `%LOCALAPPDATA%\NetForge\logs`. |
+| **Interfaz** | Tema oscuro dibujado a mano (tarjetas, pestañas y botones propios, sin un solo recurso externo), con el contraste de cada texto sobre cada fondo comprobado a 4.5:1 en la autocomprobación, avisos emergentes propios, atajos de teclado y el registro coloreado por gravedad. |
 
 ## Requisitos
 
@@ -68,7 +69,7 @@ El paquete portable lleva el ejecutable, la licencia, el historial, la documenta
 Salidas en `bin\`:
 
 - `NetForge.exe` — la aplicación (pide administrador).
-- `NetForge.Autotest.exe` — autocomprobación sin privilegios (195 comprobaciones).
+- `NetForge.Autotest.exe` — autocomprobación sin privilegios (más de 230 comprobaciones).
 
 ## Verificación
 
@@ -82,8 +83,9 @@ Sin salir del equipo de pruebas, y sin permisos de administrador, también se ve
 
 - **El servidor FTP y el portal web**, levantados en `127.0.0.1` sobre una carpeta temporal: `LIST`, `RETR`, `STOR`, `SIZE`, borrado prohibido, descarga por HTTP, petición `Range` con respuesta 206, subida multipart y el intento de salir de la carpeta con `..%2F`.
 - **El radar**, con proveedores inyectados: identidad por MAC, nombre confirmado por el motor, fabricante resuelto con la base OUI, MAC aleatorizada detectada, cliente sin MAC descartado y parada limpia.
-- **La ventana real, en español y en inglés**: se construye el panel, se recorren sus cinco pestañas y se pinta cada una a un mapa de bits (una pestaña en blanco cuenta como fallo). Se comprueba además que ningún texto visible se quedó sin traducir, que el Modo Fantasma destruye la interfaz y que volver a abrirla desde la bandeja la reconstruye.
+- **La ventana real, en español y en inglés**: se construye el panel, se recorren sus seis pestañas y se pinta cada una a un mapa de bits (una pestaña en blanco cuenta como fallo). Se comprueba además que ningún texto visible se quedó sin traducir, que el Modo Fantasma destruye la interfaz y que volver a abrirla desde la bandeja la reconstruye.
 - **Los caminos de fallo de los motores**: un arranque a medias que debe deshacerse sin dejar la radio emitiendo, y una parada que Windows no confirma, que no puede declararse como "red apagada".
+- **La identidad visual**: el contraste de cada tono de texto sobre cada fondo, de los botones en todos sus estados y de las cápsulas de estado se calcula con la fórmula de accesibilidad (WCAG 2.1) y tiene que dar 4.5:1 o más; también se comprueban las formas redondeadas (un radio imposible no puede recortar el marco) y el clasificador de gravedad del registro, con líneas reales en español y en inglés.
 
 ## Documentación
 

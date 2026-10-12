@@ -37,10 +37,12 @@ namespace NetForge.Ui
         /// </summary>
         private bool _loading;
 
-        private Label _stateLabel;
-        private Label _endpointLabel;
-        private Label _guardLabel;
-        private Label _bannerLabel;
+        private TabControl _tabs;
+        private TabPage _clientsPage;
+        private StatusPill _stateLabel;
+        private StatusPill _endpointLabel;
+        private StatusPill _guardLabel;
+        private StatusPill _bannerLabel;
         private TextBox _ssid;
         private TextBox _password;
         private CheckBox _showPassword;
@@ -53,9 +55,15 @@ namespace NetForge.Ui
         private DataGridView _clients;
         private Button _hammer;
         private Button _export;
-        private Label _clientsCount;
+        private StatusPill _clientsCount;
         private TextBox _filter;
         private Button _clearFilter;
+
+        // Resumen de un vistazo: cuatro tarjetas que atajan a la pestana de la que hablan.
+        private StatTile _tileClients;
+        private StatTile _tileNet;
+        private StatTile _tileFiles;
+        private StatTile _tileGuard;
         private IList<LanClient> _lastClients;
 
         private ComboBox _language;
@@ -81,8 +89,10 @@ namespace NetForge.Ui
         private ToolStripMenuItem _menuBan;
         private ToolStripMenuItem _menuPardon;
 
-        private Label _statusMemory;
-        private Label _statusPorts;
+        private StatusPill _statusMemory;
+        private StatusPill _statusPorts;
+        private StatusPill _statusServers;
+        private StatusPill _statusClients;
 
         private DataGridView _bans;
         private Button _pardon;
@@ -99,15 +109,22 @@ namespace NetForge.Ui
         private LinkLabel _portalLink;
         private Button _copyLink;
         private LinkLabel _ftpLink;
-        private Label _filesStats;
+        private StatusPill _filesStats;
 
         private TextBox _diagnostics;
         private Button _refreshDiagnostics;
         private Button _copyDiagnostics;
 
-        private ListBox _logList;
+        private LogList _logList;
         private Button _saveLog;
         private Button _openLog;
+        private TextBox _logFilter;
+        private CheckBox _logWarnOnly;
+        private string _logSignature;
+
+        private Button _saveDiagnostics;
+        private Button _openFolder;
+        private string _lastQrPayload;
 
         public MainForm(NetForgeContext context)
         {
@@ -144,6 +161,74 @@ namespace NetForge.Ui
             }
 
             base.Dispose(disposing);
+        }
+
+        /// <summary>
+        /// Atajos de teclado: la ventana es un panel de control y se maneja mucho con el teclado
+        /// delante. Ctrl+F busca, Ctrl+E exporta, Ctrl+S guarda los ajustes, F5 refresca y
+        /// Ctrl+1 a Ctrl+6 saltan de pestana.
+        /// </summary>
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (_released || IsDisposed)
+            {
+                return base.ProcessCmdKey(ref msg, keyData);
+            }
+
+            Keys key = keyData & Keys.KeyCode;
+            bool control = (keyData & Keys.Control) == Keys.Control;
+
+            if (control && key == Keys.F)
+            {
+                SelectTab(0);
+                if (_filter != null)
+                {
+                    _filter.Focus();
+                }
+
+                return true;
+            }
+
+            if (control && key == Keys.E)
+            {
+                OnExportClients(this, EventArgs.Empty);
+                return true;
+            }
+
+            if (control && key == Keys.S)
+            {
+                OnSaveSettings(this, EventArgs.Empty);
+                return true;
+            }
+
+            if (!control && key == Keys.F5)
+            {
+                RefreshAll();
+                return true;
+            }
+
+            // Los numeros se comparan como enteros: C# no deja comparar ni restar valores de un
+            // enumerado entre si, solo con ==.
+            int digit = (int)key;
+            if (control && digit >= (int)Keys.D0 && digit <= (int)Keys.D9)
+            {
+                int index = digit == (int)Keys.D0 ? 9 : digit - (int)Keys.D1;
+                if (_tabs != null && index >= 0 && index < _tabs.TabPages.Count)
+                {
+                    SelectTab(index);
+                    return true;
+                }
+            }
+
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        private void SelectTab(int index)
+        {
+            if (_tabs != null && index >= 0 && index < _tabs.TabPages.Count)
+            {
+                _tabs.SelectedIndex = index;
+            }
         }
 
         private void Release()
@@ -199,15 +284,20 @@ namespace NetForge.Ui
             root.BackColor = Theme.Background;
             Controls.Add(root);
 
+            root.Padding = new Padding(10, 10, 10, 0);
             root.Controls.Add(BuildHeader(), 0, 0);
 
-            TabControl tabs = Theme.Tabs();
-            tabs.TabPages.Add(BuildClientsPage());
+            FlatTabControl tabs = Theme.Tabs();
+            _tabs = tabs;
+            _clientsPage = BuildClientsPage();
+            tabs.TabPages.Add(_clientsPage);
             tabs.TabPages.Add(BuildBansPage());
             tabs.TabPages.Add(BuildFilesPage());
             tabs.TabPages.Add(BuildSettingsPage());
             tabs.TabPages.Add(BuildDiagnosticsPage());
             tabs.TabPages.Add(BuildLogPage());
+            tabs.FitTabs();
+            Theme.Tip(tabs, Strings.T("app.shortcuts"));
             root.Controls.Add(tabs, 0, 1);
             root.Controls.Add(BuildStatusBar(), 0, 2);
         }
@@ -222,104 +312,211 @@ namespace NetForge.Ui
             panel.Dock = DockStyle.Bottom;
             panel.AutoSize = true;
             panel.BackColor = Theme.Surface;
-            panel.Padding = new Padding(10, 5, 10, 5);
+            panel.Padding = new Padding(10, 4, 10, 4);
+            panel.WrapContents = false;
 
-            _statusMemory = new Label();
-            _statusMemory.AutoSize = true;
-            _statusMemory.ForeColor = Theme.TextMuted;
-            _statusMemory.Margin = new Padding(0, 2, 18, 0);
-            panel.Controls.Add(_statusMemory);
-
-            _statusPorts = new Label();
-            _statusPorts.AutoSize = true;
-            _statusPorts.ForeColor = Theme.TextMuted;
-            _statusPorts.Margin = new Padding(0, 2, 0, 0);
-            panel.Controls.Add(_statusPorts);
+            _statusMemory = StatusSegment(panel);
+            _statusPorts = StatusSegment(panel);
+            _statusServers = StatusSegment(panel);
+            _statusClients = StatusSegment(panel);
             return panel;
         }
 
+        /// <summary>
+        /// Un tramo de la barra inferior: punto de color y texto, separado del anterior por una
+        /// linea fina. Asi la barra se lee por bloques y no como una frase larga.
+        /// </summary>
+        private static StatusPill StatusSegment(FlowLayoutPanel panel)
+        {
+            if (panel.Controls.Count > 0)
+            {
+                Panel separator = new Panel();
+                separator.Width = 1;
+                separator.Height = 14;
+                separator.BackColor = Theme.BorderSoft;
+                separator.Margin = new Padding(6, 4, 10, 0);
+                panel.Controls.Add(separator);
+            }
+
+            StatusPill pill = Theme.Pill(string.Empty);
+            pill.BackColor = Theme.Surface;
+            pill.FillColor = Color.Transparent;
+            pill.ShowDot = true;
+            pill.DotColor = Theme.TextMuted;
+            pill.InkColor = Theme.TextMuted;
+            pill.Font = Theme.SmallFont;
+            pill.Margin = new Padding(0, 1, 0, 0);
+            panel.Controls.Add(pill);
+            return pill;
+        }
+
+        /// <summary>
+        /// Cabecera: marca, titulo, pildora de estado y direccion de la red en la primera fila;
+        /// el formulario de la red debajo, alineado por columnas; y las opciones al final.
+        ///
+        /// Antes esto era un unico panel que se repartia solo: al no caber, el campo de la clave
+        /// se iba a la linea siguiente y quedaba pegado a la etiqueta. Con una rejilla de columnas
+        /// cada campo sabe donde empieza, y en la ventana mas pequena no se pisan.
+        /// </summary>
         private Control BuildHeader()
         {
-            TableLayoutPanel panel = new TableLayoutPanel();
-            panel.Dock = DockStyle.Top;
-            panel.AutoSize = true;
-            panel.ColumnCount = 1;
-            panel.BackColor = Theme.Surface;
-            panel.Padding = new Padding(14, 10, 14, 10);
+            CardPanel card = Theme.Card();
+            card.Dock = DockStyle.Top;
+            card.AutoSize = true;
+            card.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            card.Radius = 12;
+            card.Padding = new Padding(16, 10, 16, 14);
 
-            TableLayoutPanel titleRow = new TableLayoutPanel();
-            titleRow.AutoSize = true;
-            titleRow.ColumnCount = 3;
-            titleRow.Dock = DockStyle.Top;
+            TableLayoutPanel layout = new TableLayoutPanel();
+            layout.Dock = DockStyle.Top;
+            layout.AutoSize = true;
+            layout.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            layout.ColumnCount = 1;
+            layout.BackColor = Theme.Surface;
+            layout.Margin = new Padding(0);
+
+            layout.Controls.Add(BuildBrandRow(), 0, 0);
+            layout.Controls.Add(BuildNetworkForm(), 0, 1);
+            layout.Controls.Add(BuildHeaderOptions(), 0, 2);
+
+            card.Controls.Add(layout);
+            return card;
+        }
+
+        private Control BuildBrandRow()
+        {
+            TableLayoutPanel row = new TableLayoutPanel();
+            row.AutoSize = true;
+            row.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            row.Dock = DockStyle.Top;
+            row.ColumnCount = 4;
+            row.BackColor = Theme.Surface;
+            row.Margin = new Padding(0, 0, 0, 4);
+
+            row.Controls.Add(Theme.Logo(), 0, 0);
+
+            TableLayoutPanel titles = new TableLayoutPanel();
+            titles.AutoSize = true;
+            titles.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            titles.ColumnCount = 1;
+            titles.RowCount = 2;
+            titles.BackColor = Theme.Surface;
+            titles.Margin = new Padding(0, 0, 16, 0);
 
             Label title = new Label();
             title.Text = Strings.T("app.title");
             title.Font = Theme.TitleFont;
             title.ForeColor = Theme.Text;
             title.AutoSize = true;
-            title.Margin = new Padding(0, 0, 14, 0);
-            titleRow.Controls.Add(title, 0, 0);
+            title.Margin = new Padding(0);
+            titles.Controls.Add(title, 0, 0);
 
-            _stateLabel = new Label();
-            _stateLabel.AutoSize = true;
-            _stateLabel.Font = new Font("Segoe UI Semibold", 11f);
-            _stateLabel.ForeColor = Theme.TextMuted;
-            _stateLabel.Margin = new Padding(0, 4, 14, 0);
-            titleRow.Controls.Add(_stateLabel, 1, 0);
+            Label subtitle = new Label();
+            subtitle.Text = Strings.T("app.subtitle");
+            subtitle.Font = Theme.SmallFont;
+            subtitle.ForeColor = Theme.TextMuted;
+            subtitle.AutoSize = true;
+            subtitle.Margin = new Padding(0, 2, 0, 0);
+            titles.Controls.Add(subtitle, 0, 1);
+            row.Controls.Add(titles, 1, 0);
 
-            _endpointLabel = new Label();
-            _endpointLabel.AutoSize = true;
-            _endpointLabel.ForeColor = Theme.TextMuted;
-            _endpointLabel.Margin = new Padding(0, 8, 0, 0);
-            titleRow.Controls.Add(_endpointLabel, 2, 0);
-            panel.Controls.Add(titleRow, 0, 0);
+            _stateLabel = Theme.Pill(Strings.T("network.state.idle"));
+            _stateLabel.Font = Theme.StateFont;
+            _stateLabel.FillColor = Theme.SurfaceHigh;
+            _stateLabel.DotColor = Theme.TextMuted;
+            _stateLabel.InkColor = Theme.Text;
+            _stateLabel.Margin = new Padding(0, 4, 8, 0);
+            row.Controls.Add(_stateLabel, 2, 0);
 
-            FlowLayoutPanel fields = new FlowLayoutPanel();
-            fields.AutoSize = true;
-            fields.WrapContents = true;
-            fields.Dock = DockStyle.Top;
+            _endpointLabel = Theme.Pill(string.Empty);
+            _endpointLabel.ShowDot = false;
+            _endpointLabel.Font = Theme.SmallFont;
+            _endpointLabel.FillColor = Theme.AccentSoft;
+            _endpointLabel.InkColor = Theme.Accent;
+            _endpointLabel.Margin = new Padding(0, 7, 0, 0);
+            _endpointLabel.Visible = false;
+            row.Controls.Add(_endpointLabel, 3, 0);
+            return row;
+        }
 
-            fields.Controls.Add(Theme.Caption(Strings.T("network.ssid")));
-            _ssid = Theme.Input(170);
-            fields.Controls.Add(_ssid);
+        private Control BuildNetworkForm()
+        {
+            TableLayoutPanel form = new TableLayoutPanel();
+            form.AutoSize = true;
+            form.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            form.Dock = DockStyle.Top;
+            form.ColumnCount = 6;
+            form.BackColor = Theme.Surface;
+            form.Margin = new Padding(0, 6, 0, 0);
 
-            fields.Controls.Add(Theme.Caption(Strings.T("network.password")));
-            _password = Theme.Input(170);
+            Label ssidCaption = Theme.Caption(Strings.T("network.ssid"));
+            ssidCaption.Margin = new Padding(0, 9, 8, 4);
+            form.Controls.Add(ssidCaption, 0, 0);
+
+            _ssid = Theme.Input(180);
+            form.Controls.Add(_ssid, 1, 0);
+            Theme.Tip(_ssid, Strings.T("tip.ssid"));
+
+            Label passwordCaption = Theme.Caption(Strings.T("network.password"));
+            passwordCaption.Margin = new Padding(14, 9, 8, 4);
+            form.Controls.Add(passwordCaption, 2, 0);
+
+            _password = Theme.Input(180);
             _password.UseSystemPasswordChar = true;
-            fields.Controls.Add(_password);
+            form.Controls.Add(_password, 3, 0);
+            Theme.Tip(_password, Strings.T("tip.password"));
 
             _showPassword = Theme.Check(Strings.T("network.show"));
             _showPassword.CheckedChanged += delegate { _password.UseSystemPasswordChar = !_showPassword.Checked; };
-            fields.Controls.Add(_showPassword);
+            form.Controls.Add(_showPassword, 4, 0);
+            form.SetColumnSpan(_showPassword, 2);
 
-            fields.Controls.Add(Theme.Caption(Strings.T("network.engine")));
-            _engine = new ComboBox();
-            _engine.DropDownStyle = ComboBoxStyle.DropDownList;
-            _engine.Width = 230;
-            Theme.StyleInput(_engine);
+            Label engineCaption = Theme.Caption(Strings.T("network.engine"));
+            engineCaption.Margin = new Padding(0, 9, 8, 4);
+            form.Controls.Add(engineCaption, 0, 1);
+
+            _engine = Theme.Combo(230);
             _engine.Items.Add(Strings.T("network.engine.auto"));
             _engine.Items.Add(Strings.T("network.engine.offgrid"));
             _engine.Items.Add(Strings.T("network.engine.sharing"));
             _engine.Items.Add(Strings.T("network.engine.legacy"));
-            fields.Controls.Add(_engine);
+            form.Controls.Add(_engine, 1, 1);
+            Theme.Tip(_engine, Strings.T("tip.engine"));
+
+            FlowLayoutPanel actions = new FlowLayoutPanel();
+            actions.AutoSize = true;
+            actions.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            actions.Margin = new Padding(0, 0, 0, 0);
 
             _startStop = Theme.Primary(Strings.T("network.create"));
+            Theme.SetGlyph(_startStop, GlyphKind.Play);
             _startStop.Click += OnStartStop;
-            fields.Controls.Add(_startStop);
+            Theme.Tip(_startStop, Strings.T("tip.start"));
+            actions.Controls.Add(_startStop);
 
             _share = Theme.Check(Strings.T("network.share"));
             _share.CheckedChanged += OnShareChanged;
-            fields.Controls.Add(_share);
+            Theme.Tip(_share, Strings.T("tip.share"));
+            actions.Controls.Add(_share);
 
-            panel.Controls.Add(fields, 0, 1);
+            form.Controls.Add(actions, 2, 1);
+            form.SetColumnSpan(actions, 4);
+            return form;
+        }
 
+        private Control BuildHeaderOptions()
+        {
             FlowLayoutPanel options = new FlowLayoutPanel();
             options.AutoSize = true;
+            options.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             options.WrapContents = true;
             options.Dock = DockStyle.Top;
+            options.BackColor = Theme.Surface;
+            options.Margin = new Padding(0, 4, 0, 0);
 
             _autostart = Theme.Check(Strings.T("autostart"));
             _autostart.CheckedChanged += OnAutostartChanged;
+            Theme.Tip(_autostart, Strings.T("tip.autostart"));
             options.Controls.Add(_autostart);
 
             _startMinimized = Theme.Check(Strings.T("autostart.minimized"));
@@ -335,28 +532,28 @@ namespace NetForge.Ui
             };
             options.Controls.Add(_startMinimized);
 
-            _guardLabel = new Label();
-            _guardLabel.AutoSize = true;
-            _guardLabel.ForeColor = Theme.TextMuted;
-            _guardLabel.Margin = new Padding(12, 8, 0, 0);
+            _guardLabel = Theme.Pill(string.Empty);
+            _guardLabel.ShowDot = true;
+            _guardLabel.DotColor = Theme.TextMuted;
+            _guardLabel.InkColor = Theme.TextMuted;
+            _guardLabel.FillColor = Color.Transparent;
+            _guardLabel.Font = Theme.SmallFont;
+            _guardLabel.BackColor = Theme.Surface;
+            _guardLabel.Margin = new Padding(10, 1, 6, 0);
+            Theme.Tip(_guardLabel, Strings.T("tip.guard"));
             options.Controls.Add(_guardLabel);
 
-            _bannerLabel = new Label();
-            _bannerLabel.AutoSize = true;
-            _bannerLabel.ForeColor = Theme.Warning;
-            _bannerLabel.Margin = new Padding(12, 8, 0, 0);
+            _bannerLabel = Theme.Pill(string.Empty);
+            _bannerLabel.ShowDot = true;
+            _bannerLabel.DotColor = Theme.Warning;
+            _bannerLabel.InkColor = Theme.Warning;
+            _bannerLabel.FillColor = Theme.WarningSoft;
+            _bannerLabel.Font = Theme.SmallFont;
+            _bannerLabel.BackColor = Theme.Surface;
+            _bannerLabel.Margin = new Padding(6, 1, 0, 0);
+            _bannerLabel.Visible = false;
             options.Controls.Add(_bannerLabel);
-
-            panel.Controls.Add(options, 0, 2);
-
-            Label subtitle = new Label();
-            subtitle.Text = Strings.T("app.subtitle");
-            subtitle.AutoSize = true;
-            subtitle.ForeColor = Theme.TextMuted;
-            subtitle.Margin = new Padding(0, 6, 0, 0);
-            panel.Controls.Add(subtitle, 0, 3);
-
-            return panel;
+            return options;
         }
 
         private TabPage BuildClientsPage()
@@ -381,15 +578,25 @@ namespace NetForge.Ui
             _clients.Columns["state"].FillWeight = 70;
             _clients.Columns["source"].FillWeight = 110;
 
+            // La caja de busqueda lleva su etiqueta delante: sin ella, un campo vacio en la
+            // cabecera de una tabla no dice que hace.
             FlowLayoutPanel filterRow = new FlowLayoutPanel();
             filterRow.Dock = DockStyle.Top;
             filterRow.AutoSize = true;
+            filterRow.WrapContents = true;
+            filterRow.BackColor = Theme.Background;
 
-            _filter = Theme.Input(260);
+            Label filterCaption = Theme.Caption(Strings.T("clients.filter"));
+            filterCaption.Margin = new Padding(0, 9, 8, 4);
+            filterRow.Controls.Add(filterCaption);
+
+            _filter = Theme.Input(240);
             _filter.TextChanged += OnFilterChanged;
+            Theme.Tip(_filter, Strings.T("tip.filter"));
             filterRow.Controls.Add(_filter);
 
             _clearFilter = Theme.Secondary(Strings.T("clients.clear"));
+            Theme.SetGlyph(_clearFilter, GlyphKind.Clear);
             _clearFilter.Click += delegate
             {
                 _filter.Text = string.Empty;
@@ -397,22 +604,63 @@ namespace NetForge.Ui
             };
             filterRow.Controls.Add(_clearFilter);
 
+            _clientsCount = Theme.Pill(string.Empty);
+            _clientsCount.ShowDot = true;
+            _clientsCount.DotColor = Theme.Accent;
+            _clientsCount.InkColor = Theme.TextMuted;
+            _clientsCount.FillColor = Color.Transparent;
+            _clientsCount.Font = Theme.SmallFont;
+            _clientsCount.BackColor = Theme.Background;
+            _clientsCount.Margin = new Padding(10, 3, 0, 0);
+            filterRow.Controls.Add(_clientsCount);
+
             FlowLayoutPanel bar = new FlowLayoutPanel();
             bar.Dock = DockStyle.Bottom;
             bar.AutoSize = true;
+            bar.BackColor = Theme.Background;
+            bar.Padding = new Padding(0, 4, 0, 0);
 
-            _clientsCount = new Label();
-            _clientsCount.AutoSize = true;
-            _clientsCount.ForeColor = Theme.TextMuted;
-            _clientsCount.Margin = new Padding(4, 12, 12, 0);
-            bar.Controls.Add(_clientsCount);
+            // Resumen de un vistazo: tres cifras y un estado que llevan a la pestana de la que
+            // hablan. Se rellenan en RefreshTiles, y solo escriben cuando el valor cambia: cada
+            // escritura repinta el recuadro entero.
+            FlowLayoutPanel summary = new FlowLayoutPanel();
+            summary.Dock = DockStyle.Top;
+            summary.AutoSize = true;
+            summary.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            summary.WrapContents = true;
+            summary.BackColor = Theme.Background;
+            summary.Padding = new Padding(0, 0, 0, 10);
+
+            _tileClients = Theme.Tile(Strings.T("tile.clients"));
+            _tileClients.Click += OnTileClients;
+            Theme.Tip(_tileClients, Strings.T("tip.tileclients"));
+            summary.Controls.Add(_tileClients);
+
+            _tileNet = Theme.Tile(Strings.T("tile.network"));
+            _tileNet.Click += OnTileNetwork;
+            Theme.Tip(_tileNet, Strings.T("tip.tilenetwork"));
+            summary.Controls.Add(_tileNet);
+
+            _tileFiles = Theme.Tile(Strings.T("tile.files"));
+            _tileFiles.Click += OnTileFiles;
+            Theme.Tip(_tileFiles, Strings.T("tip.tilefiles"));
+            summary.Controls.Add(_tileFiles);
+
+            _tileGuard = Theme.Tile(Strings.T("tile.guard"));
+            _tileGuard.Click += OnTileGuard;
+            Theme.Tip(_tileGuard, Strings.T("tip.tileguard"));
+            summary.Controls.Add(_tileGuard);
 
             _hammer = Theme.DangerButton(Strings.T("clients.hammer"));
+            Theme.SetGlyph(_hammer, GlyphKind.Shield);
             _hammer.Click += OnHammer;
+            Theme.Tip(_hammer, Strings.T("tip.hammer"));
             bar.Controls.Add(_hammer);
 
             _export = Theme.Secondary(Strings.T("clients.export"));
+            Theme.SetGlyph(_export, GlyphKind.Download);
             _export.Click += OnExportClients;
+            Theme.Tip(_export, Strings.T("tip.export"));
             bar.Controls.Add(_export);
 
             // Menu contextual sobre la tabla: banear e indultar sin mover el raton hasta la
@@ -431,8 +679,14 @@ namespace NetForge.Ui
             _clientMenu.Opening += OnClientsMenuOpening;
             _clients.ContextMenuStrip = _clientMenu;
 
+            // Doble clic sobre un equipo: se abre su direccion en el navegador. Con la lista
+            // delante, es lo primero que apetece hacer para ver que tiene dentro.
+            _clients.CellDoubleClick += OnClientsOpenRow;
+            Theme.Tip(_clients, Strings.T("tip.clients"));
+
             page.Controls.Add(_clients);
             page.Controls.Add(filterRow);
+            page.Controls.Add(summary);
             page.Controls.Add(bar);
             return page;
         }
@@ -458,11 +712,16 @@ namespace NetForge.Ui
             bar.Dock = DockStyle.Bottom;
             bar.AutoSize = true;
 
+            bar.BackColor = Theme.Background;
+            bar.Padding = new Padding(0, 4, 0, 0);
+
             _pardon = Theme.Primary(Strings.T("parole.pardon"));
+            Theme.SetGlyph(_pardon, GlyphKind.Check);
             _pardon.Click += OnPardon;
             bar.Controls.Add(_pardon);
 
             _pardonAll = Theme.Secondary(Strings.T("parole.pardonall"));
+            Theme.SetGlyph(_pardonAll, GlyphKind.Check);
             _pardonAll.Click += OnPardonAll;
             bar.Controls.Add(_pardonAll);
 
@@ -479,98 +738,195 @@ namespace NetForge.Ui
             layout.Dock = DockStyle.Fill;
             layout.ColumnCount = 2;
             layout.RowCount = 1;
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 62f));
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38f));
+            layout.BackColor = Theme.Background;
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60f));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40f));
 
+            // Columna izquierda: una tarjeta para la carpeta y otra para los servidores. Antes
+            // era una lista plana de secciones; con tarjetas se ve que cada grupo se configura
+            // por separado, y donde acaba el bloque de los puertos.
             TableLayoutPanel left = new TableLayoutPanel();
-            left.Dock = DockStyle.Fill;
+            left.Dock = DockStyle.Top;
             left.ColumnCount = 1;
             left.AutoSize = true;
+            left.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            left.BackColor = Theme.Background;
+            left.Margin = new Padding(0, 0, 10, 0);
+            left.Controls.Add(BuildShareCard(), 0, 0);
+            left.Controls.Add(BuildServersCard(), 0, 1);
 
-            left.Controls.Add(Theme.Section(Strings.T("files.folder")), 0, 0);
+            layout.Controls.Add(left, 0, 0);
+            layout.Controls.Add(BuildQrCard(), 1, 0);
+            page.Controls.Add(layout);
+            return page;
+        }
 
+        /// <summary>Carpeta compartida y permisos: lo primero que se toca al compartir archivos.</summary>
+        private Control BuildShareCard()
+        {
+            CardPanel card = Theme.Card();
+            card.Dock = DockStyle.Top;
+            card.AutoSize = true;
+            card.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+
+            TableLayoutPanel body = CardBody(card, Strings.T("files.folder"));
+
+            // El ancho de la columna izquierda depende del tamano de la ventana, asi que estas
+            // filas se dejan envolver: con la ventana en su minimo, los botones bajan a la linea
+            // siguiente en vez de quedar recortados fuera de la tarjeta.
             FlowLayoutPanel folderRow = new FlowLayoutPanel();
             folderRow.AutoSize = true;
-            _folder = Theme.Input(360);
+            folderRow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            folderRow.WrapContents = true;
+            _folder = Theme.Input(260);
             folderRow.Controls.Add(_folder);
             _browse = Theme.Secondary(Strings.T("files.browse"));
+            Theme.SetGlyph(_browse, GlyphKind.Folder);
             _browse.Click += OnBrowse;
             folderRow.Controls.Add(_browse);
-            left.Controls.Add(folderRow, 0, 1);
+            _openFolder = Theme.Secondary(Strings.T("files.openfolder"));
+            Theme.SetGlyph(_openFolder, GlyphKind.Folder);
+            _openFolder.Click += OnOpenSharedFolder;
+            Theme.Tip(_openFolder, Strings.T("tip.openfolder"));
+            folderRow.Controls.Add(_openFolder);
+            body.Controls.Add(folderRow, 0, 1);
+
+            body.Controls.Add(Theme.Section(Strings.T("files.card.share")), 0, 2);
 
             FlowLayoutPanel switches = new FlowLayoutPanel();
             switches.AutoSize = true;
             switches.WrapContents = true;
             _upload = Theme.Check(Strings.T("files.allowupload"));
             _upload.CheckedChanged += OnShareOptionsChanged;
+            Theme.Tip(_upload, Strings.T("tip.upload"));
             switches.Controls.Add(_upload);
             _delete = Theme.Check(Strings.T("files.allowdelete"));
             _delete.CheckedChanged += OnShareOptionsChanged;
+            Theme.Tip(_delete, Strings.T("tip.delete"));
             switches.Controls.Add(_delete);
-            left.Controls.Add(switches, 0, 2);
+            body.Controls.Add(switches, 0, 3);
+            return card;
+        }
+
+        /// <summary>Servidores de archivos: arranque, direcciones y contadores de trafico.</summary>
+        private Control BuildServersCard()
+        {
+            CardPanel card = Theme.Card();
+            card.Dock = DockStyle.Top;
+            card.AutoSize = true;
+            card.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+
+            TableLayoutPanel body = CardBody(card, Strings.T("files.servers"));
 
             FlowLayoutPanel servers = new FlowLayoutPanel();
             servers.AutoSize = true;
+            servers.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            servers.WrapContents = true;
+
             _startServers = Theme.Primary(Strings.T("files.start"));
+            Theme.SetGlyph(_startServers, GlyphKind.Play);
             _startServers.Click += OnStartServers;
+            Theme.Tip(_startServers, Strings.T("tip.startservers"));
             servers.Controls.Add(_startServers);
+
             _stopServers = Theme.Secondary(Strings.T("files.stop"));
+            Theme.SetGlyph(_stopServers, GlyphKind.Stop);
             _stopServers.Click += OnStopServers;
             servers.Controls.Add(_stopServers);
-            left.Controls.Add(servers, 0, 3);
+            body.Controls.Add(servers, 0, 1);
 
-            left.Controls.Add(Theme.Section(Strings.T("files.portal")), 0, 4);
-            _portalLink = new LinkLabel();
-            _portalLink.AutoSize = true;
-            _portalLink.ForeColor = Theme.Accent;
-            _portalLink.LinkColor = Theme.Accent;
+            // Cada direccion lleva su titulo en una linea propia: asi el enlace nunca compite por
+            // el ancho con su etiqueta y no hay texto cortado.
+            body.Controls.Add(Theme.Section(Strings.T("files.portal")), 0, 2);
+
+            FlowLayoutPanel portalRow = new FlowLayoutPanel();
+            portalRow.AutoSize = true;
+            portalRow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            portalRow.WrapContents = true;
+            _portalLink = Theme.Link(string.Empty);
             _portalLink.LinkClicked += OnOpenLink;
-            left.Controls.Add(_portalLink, 0, 5);
-
-            FlowLayoutPanel linkRow = new FlowLayoutPanel();
-            linkRow.AutoSize = true;
+            portalRow.Controls.Add(_portalLink);
             _copyLink = Theme.Secondary(Strings.T("files.copy"));
+            Theme.SetGlyph(_copyLink, GlyphKind.Copy);
             _copyLink.Click += OnCopyLink;
-            linkRow.Controls.Add(_copyLink);
-            left.Controls.Add(linkRow, 0, 6);
+            Theme.Tip(_copyLink, Strings.T("tip.copylink"));
+            portalRow.Controls.Add(_copyLink);
+            body.Controls.Add(portalRow, 0, 3);
 
-            left.Controls.Add(Theme.Section(Strings.T("files.ftp")), 0, 7);
-            _ftpLink = new LinkLabel();
-            _ftpLink.AutoSize = true;
-            _ftpLink.ForeColor = Theme.Accent;
-            _ftpLink.LinkColor = Theme.Accent;
+            body.Controls.Add(Theme.Section(Strings.T("files.ftp")), 0, 4);
+
+            FlowLayoutPanel ftpRow = new FlowLayoutPanel();
+            ftpRow.AutoSize = true;
+            ftpRow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            ftpRow.WrapContents = true;
+            _ftpLink = Theme.Link(string.Empty);
             _ftpLink.LinkClicked += OnOpenLink;
-            left.Controls.Add(_ftpLink, 0, 8);
+            ftpRow.Controls.Add(_ftpLink);
+            body.Controls.Add(ftpRow, 0, 5);
 
-            _filesStats = new Label();
-            _filesStats.AutoSize = true;
-            _filesStats.ForeColor = Theme.TextMuted;
-            _filesStats.Margin = new Padding(0, 10, 0, 0);
-            left.Controls.Add(_filesStats, 0, 9);
+            _filesStats = Theme.Pill(string.Empty);
+            _filesStats.ShowDot = true;
+            _filesStats.DotColor = Theme.Success;
+            _filesStats.InkColor = Theme.TextMuted;
+            _filesStats.FillColor = Color.Transparent;
+            _filesStats.Font = Theme.SmallFont;
+            _filesStats.BackColor = Theme.Surface;
+            _filesStats.Margin = new Padding(0, 8, 0, 0);
+            body.Controls.Add(_filesStats, 0, 6);
+            return card;
+        }
 
-            TableLayoutPanel right = new TableLayoutPanel();
-            right.Dock = DockStyle.Fill;
-            right.ColumnCount = 1;
-            right.AutoSize = true;
-            right.Controls.Add(Theme.Section(Strings.T("files.qr")), 0, 0);
+        /// <summary>El QR, que es el camino comodo para abrir el portal desde el movil.</summary>
+        private Control BuildQrCard()
+        {
+            CardPanel card = Theme.Card();
+            card.Dock = DockStyle.Fill;
+
+            TableLayoutPanel body = new TableLayoutPanel();
+            body.Dock = DockStyle.Top;
+            body.AutoSize = true;
+            body.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            body.ColumnCount = 1;
+            body.BackColor = Theme.Surface;
+            body.Margin = new Padding(0);
+            body.Controls.Add(Theme.Section(Strings.T("files.card.qr")), 0, 0);
 
             _qr = new PictureBox();
-            _qr.Size = new Size(240, 240);
+            _qr.Size = new Size(228, 228);
             _qr.SizeMode = PictureBoxSizeMode.Zoom;
             _qr.BackColor = Color.White;
-            _qr.Margin = new Padding(0, 6, 0, 6);
-            right.Controls.Add(_qr, 0, 1);
+            _qr.Margin = new Padding(0, 6, 0, 8);
+            Theme.Tip(_qr, Strings.T("tip.qr"));
+            body.Controls.Add(_qr, 0, 1);
 
-            _qrHint = new Label();
-            _qrHint.AutoSize = true;
-            _qrHint.MaximumSize = new Size(260, 0);
-            _qrHint.ForeColor = Theme.TextMuted;
-            right.Controls.Add(_qrHint, 0, 2);
+            _qrHint = Theme.Note(string.Empty, 240);
+            body.Controls.Add(_qrHint, 0, 2);
+            card.Controls.Add(body);
+            return card;
+        }
 
-            layout.Controls.Add(left, 0, 0);
-            layout.Controls.Add(right, 1, 0);
-            page.Controls.Add(layout);
-            return page;
+        /// <summary>
+        /// Cuerpo de una tarjeta: el titulo de la seccion y una columna donde el que llama va
+        /// anadiendo filas. Todas las tarjetas del programa se montan igual, asi que todas se
+        /// ven igual.
+        /// </summary>
+        private static TableLayoutPanel CardBody(CardPanel card, string title)
+        {
+            TableLayoutPanel body = new TableLayoutPanel();
+            body.Dock = DockStyle.Top;
+            body.AutoSize = true;
+            body.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            body.ColumnCount = 1;
+            body.BackColor = Theme.Surface;
+            body.Margin = new Padding(0);
+
+            if (!string.IsNullOrEmpty(title))
+            {
+                body.Controls.Add(Theme.Section(title), 0, 0);
+            }
+
+            card.Controls.Add(body);
+            return body;
         }
 
         /// <summary>
@@ -592,15 +948,19 @@ namespace NetForge.Ui
             scroll.BackColor = Theme.Background;
             page.Controls.Add(scroll);
 
-            TableLayoutPanel layout = new TableLayoutPanel();
-            layout.Dock = DockStyle.Top;
-            layout.ColumnCount = 2;
-            layout.AutoSize = true;
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            // Los ajustes se apilan en tarjetas: una por tema. Es la pestana mas larga, y con
+            // todo seguido en una lista no se veia donde acababa un grupo y empezaba el siguiente.
+            TableLayoutPanel stack = new TableLayoutPanel();
+            stack.Dock = DockStyle.Top;
+            stack.AutoSize = true;
+            stack.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            stack.ColumnCount = 1;
+            stack.BackColor = Theme.Background;
+            stack.Margin = new Padding(0);
+            scroll.Controls.Add(stack);
 
-            int row = 0;
-            AddSection(layout, Strings.T("settings.section.app"), ref row);
+            int row = 1;
+            TableLayoutPanel layout = SettingsCard(stack, Strings.T("settings.section.app"));
 
             _language = new ComboBox();
             _language.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -619,7 +979,8 @@ namespace NetForge.Ui
             _settingsNote.Margin = new Padding(0, 4, 0, 10);
             layout.Controls.Add(_settingsNote, 1, row++);
 
-            AddSection(layout, Strings.T("settings.section.network"), ref row);
+            row = 1;
+            layout = SettingsCard(stack, Strings.T("settings.section.network"));
 
             _band = new ComboBox();
             _band.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -629,7 +990,8 @@ namespace NetForge.Ui
             _band.Items.Add(Strings.T("settings.band.5"));
             AddSetting(layout, Strings.T("settings.band"), _band, ref row);
 
-            AddSection(layout, Strings.T("settings.section.timing"), ref row);
+            row = 1;
+            layout = SettingsCard(stack, Strings.T("settings.section.timing"));
 
             _radarSeconds = NewNumber(AppSettings.MinRadarSeconds, AppSettings.MaxRadarSeconds, 1, " s");
             AddSetting(layout, Strings.T("settings.radar"), _radarSeconds, ref row);
@@ -637,7 +999,8 @@ namespace NetForge.Ui
             _guardSeconds = NewNumber(AppSettings.MinGuardSeconds, AppSettings.MaxGuardSeconds, 1, " s");
             AddSetting(layout, Strings.T("settings.guard"), _guardSeconds, ref row);
 
-            AddSection(layout, Strings.T("settings.section.service"), ref row);
+            row = 1;
+            layout = SettingsCard(stack, Strings.T("settings.section.service"));
 
             _serviceState = new Label();
             _serviceState.AutoSize = true;
@@ -655,13 +1018,15 @@ namespace NetForge.Ui
             serviceRow.AutoSize = true;
             serviceRow.Margin = new Padding(0, 4, 0, 0);
             _startService = Theme.Secondary(Strings.T("settings.service.start"));
+            Theme.SetGlyph(_startService, GlyphKind.Shield);
             _startService.Click += OnStartService;
             serviceRow.Controls.Add(_serviceState);
             serviceRow.Controls.Add(_startService);
             layout.Controls.Add(serviceRow, 1, row++);
             layout.Controls.Add(_serviceNote, 1, row++);
 
-            AddSection(layout, Strings.T("settings.section.startup"), ref row);
+            row = 1;
+            layout = SettingsCard(stack, Strings.T("settings.section.startup"));
 
             _autostartState = new Label();
             _autostartState.AutoSize = true;
@@ -670,6 +1035,7 @@ namespace NetForge.Ui
             _autostartState.Margin = new Padding(0, 8, 12, 0);
 
             _repairAutostart = Theme.Secondary(Strings.T("settings.autostart.repair"));
+            Theme.SetGlyph(_repairAutostart, GlyphKind.Refresh);
             _repairAutostart.Click += OnRepairAutostart;
 
             FlowLayoutPanel autostartRow = new FlowLayoutPanel();
@@ -687,7 +1053,8 @@ namespace NetForge.Ui
             autostartNote.Margin = new Padding(0, 4, 0, 8);
             layout.Controls.Add(autostartNote, 1, row++);
 
-            AddSection(layout, Strings.T("settings.section.files"), ref row);
+            row = 1;
+            layout = SettingsCard(stack, Strings.T("settings.section.files"));
 
             _filesAuto = Theme.Check(Strings.T("settings.filesauto"));
             layout.Controls.Add(_filesAuto, 1, row++);
@@ -703,7 +1070,8 @@ namespace NetForge.Ui
             _ftpUser = Theme.Input(160);
             AddSetting(layout, Strings.T("settings.ftpuser"), _ftpUser, ref row);
 
-            AddSection(layout, Strings.T("settings.section.alerts"), ref row);
+            row = 1;
+            layout = SettingsCard(stack, Strings.T("settings.section.alerts"));
 
             _notify = Theme.Check(Strings.T("settings.notify"));
             layout.Controls.Add(_notify, 1, row++);
@@ -719,13 +1087,15 @@ namespace NetForge.Ui
             notifyNote.Margin = new Padding(0, 4, 0, 8);
             layout.Controls.Add(notifyNote, 1, row++);
 
-            Label hint = new Label();
-            hint.Text = Strings.T("settings.restartnetwork");
-            hint.AutoSize = true;
-            hint.MaximumSize = new Size(520, 0);
-            hint.ForeColor = Theme.TextMuted;
-            hint.Margin = new Padding(0, 4, 0, 0);
-            layout.Controls.Add(hint, 1, row++);
+            // Dos notas al pie, fuera de las tarjetas: valen para toda la pestana, no para un
+            // grupo concreto.
+            Label shortcutNote = Theme.Note(Strings.T("app.shortcuts"), 620);
+            shortcutNote.Margin = new Padding(4, 2, 4, 2);
+            stack.Controls.Add(shortcutNote);
+
+            Label hint = Theme.Note(Strings.T("settings.restartnetwork"), 620);
+            hint.Margin = new Padding(4, 0, 4, 10);
+            stack.Controls.Add(hint);
 
             // Los botones van en una barra fija abajo, fuera de la zona que se desplaza: si no,
             // con la ventana pequena hay que bajar para encontrar "Guardar" y parece que no existe.
@@ -736,18 +1106,20 @@ namespace NetForge.Ui
             buttons.Padding = new Padding(0, 6, 0, 2);
 
             _saveSettings = Theme.Primary(Strings.T("settings.save"));
+            Theme.SetGlyph(_saveSettings, GlyphKind.Save);
             _saveSettings.Click += OnSaveSettings;
             buttons.Controls.Add(_saveSettings);
 
             _defaultSettings = Theme.Secondary(Strings.T("settings.defaults"));
+            Theme.SetGlyph(_defaultSettings, GlyphKind.Refresh);
             _defaultSettings.Click += OnRestoreDefaults;
             buttons.Controls.Add(_defaultSettings);
 
             _openDataFolder = Theme.Secondary(Strings.T("settings.openfolder"));
+            Theme.SetGlyph(_openDataFolder, GlyphKind.Folder);
             _openDataFolder.Click += delegate { Log.OpenFolder(); };
             buttons.Controls.Add(_openDataFolder);
 
-            scroll.Controls.Add(layout);
             page.Controls.Add(buttons);
             return page;
         }
@@ -773,12 +1145,35 @@ namespace NetForge.Ui
             return box;
         }
 
-        private static void AddSection(TableLayoutPanel layout, string title, ref int row)
+        /// <summary>
+        /// Anade una tarjeta de ajustes al monton y devuelve su cuerpo: dos columnas, la
+        /// etiqueta a la izquierda y el control a la derecha, con el titulo ocupando las dos.
+        /// </summary>
+        private static TableLayoutPanel SettingsCard(TableLayoutPanel stack, string title)
         {
-            Label label = Theme.Section(title);
-            label.Margin = new Padding(0, row == 0 ? 0 : 14, 0, 4);
-            layout.Controls.Add(label, 0, row++);
-            layout.SetColumnSpan(label, 2);
+            CardPanel card = Theme.Card();
+            card.Dock = DockStyle.Top;
+            card.AutoSize = true;
+            card.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+
+            TableLayoutPanel body = new TableLayoutPanel();
+            body.Dock = DockStyle.Top;
+            body.AutoSize = true;
+            body.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            body.ColumnCount = 2;
+            body.BackColor = Theme.Surface;
+            body.Margin = new Padding(0);
+            body.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            body.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+            Label heading = Theme.Section(title);
+            heading.Margin = new Padding(0, 0, 0, 2);
+            body.Controls.Add(heading, 0, 0);
+            body.SetColumnSpan(heading, 2);
+
+            card.Controls.Add(body);
+            stack.Controls.Add(card);
+            return body;
         }
 
         private static void AddSetting(TableLayoutPanel layout, string caption, Control input, ref int row)
@@ -807,28 +1202,45 @@ namespace NetForge.Ui
         {
             TabPage page = Theme.Page(Strings.T("tab.diagnostics"));
 
+            CardPanel card = Theme.Card();
+            card.Dock = DockStyle.Fill;
+            card.Padding = new Padding(8);
+
             _diagnostics = new TextBox();
             _diagnostics.Multiline = true;
             _diagnostics.ReadOnly = true;
             _diagnostics.ScrollBars = ScrollBars.Both;
             _diagnostics.WordWrap = false;
             _diagnostics.Dock = DockStyle.Fill;
+            _diagnostics.BorderStyle = BorderStyle.None;
             _diagnostics.Font = Theme.MonoFont;
             Theme.StyleInput(_diagnostics);
+            card.Controls.Add(_diagnostics);
 
             FlowLayoutPanel bar = new FlowLayoutPanel();
             bar.Dock = DockStyle.Bottom;
             bar.AutoSize = true;
+            bar.BackColor = Theme.Background;
+            bar.Padding = new Padding(0, 4, 0, 0);
 
             _refreshDiagnostics = Theme.Primary(Strings.T("diag.refresh"));
+            Theme.SetGlyph(_refreshDiagnostics, GlyphKind.Refresh);
             _refreshDiagnostics.Click += OnRefreshDiagnostics;
+            Theme.Tip(_refreshDiagnostics, Strings.T("tip.refreshdiag"));
             bar.Controls.Add(_refreshDiagnostics);
 
             _copyDiagnostics = Theme.Secondary(Strings.T("diag.copy"));
+            Theme.SetGlyph(_copyDiagnostics, GlyphKind.Copy);
             _copyDiagnostics.Click += OnCopyDiagnostics;
             bar.Controls.Add(_copyDiagnostics);
 
-            page.Controls.Add(_diagnostics);
+            _saveDiagnostics = Theme.Secondary(Strings.T("diag.save"));
+            Theme.SetGlyph(_saveDiagnostics, GlyphKind.Save);
+            _saveDiagnostics.Click += OnSaveDiagnostics;
+            Theme.Tip(_saveDiagnostics, Strings.T("tip.savereport"));
+            bar.Controls.Add(_saveDiagnostics);
+
+            page.Controls.Add(card);
             page.Controls.Add(bar);
             return page;
         }
@@ -837,26 +1249,49 @@ namespace NetForge.Ui
         {
             TabPage page = Theme.Page(Strings.T("tab.log"));
 
-            _logList = new ListBox();
+            _logList = new LogList();
             _logList.Dock = DockStyle.Fill;
-            _logList.BackColor = Theme.SurfaceAlt;
-            _logList.ForeColor = Theme.Text;
-            _logList.Font = Theme.MonoFont;
-            _logList.BorderStyle = BorderStyle.None;
+            Theme.Tip(_logList, Strings.T("app.logfilter"));
+
+            FlowLayoutPanel filterRow = new FlowLayoutPanel();
+            filterRow.Dock = DockStyle.Top;
+            filterRow.AutoSize = true;
+            filterRow.BackColor = Theme.Background;
+
+            Label caption = Theme.Caption(Strings.T("log.filter"));
+            caption.Margin = new Padding(0, 9, 8, 4);
+            filterRow.Controls.Add(caption);
+
+            _logFilter = Theme.Input(220);
+            _logFilter.TextChanged += OnLogFilterChanged;
+            Theme.Tip(_logFilter, Strings.T("tip.logfilter"));
+            filterRow.Controls.Add(_logFilter);
+
+            _logWarnOnly = Theme.Check(Strings.T("log.warnonly"));
+            _logWarnOnly.CheckedChanged += OnLogFilterChanged;
+            Theme.Tip(_logWarnOnly, Strings.T("tip.warnonly"));
+            filterRow.Controls.Add(_logWarnOnly);
 
             FlowLayoutPanel bar = new FlowLayoutPanel();
             bar.Dock = DockStyle.Bottom;
             bar.AutoSize = true;
+            bar.BackColor = Theme.Background;
+            bar.Padding = new Padding(0, 4, 0, 0);
 
             _saveLog = Theme.Secondary(Strings.T("log.dump"));
+            Theme.SetGlyph(_saveLog, GlyphKind.Save);
             _saveLog.Click += OnSaveLog;
+            Theme.Tip(_saveLog, Strings.T("tip.savelog"));
             bar.Controls.Add(_saveLog);
 
             _openLog = Theme.Secondary(Strings.T("log.open"));
+            Theme.SetGlyph(_openLog, GlyphKind.Folder);
             _openLog.Click += delegate { Log.OpenFolder(); };
+            Theme.Tip(_openLog, Strings.T("tip.openlog"));
             bar.Controls.Add(_openLog);
 
             page.Controls.Add(_logList);
+            page.Controls.Add(filterRow);
             page.Controls.Add(bar);
             return page;
         }
@@ -1243,7 +1678,12 @@ namespace NetForge.Ui
                 _upload.Checked = settings.ShareFolderUploads;
                 _delete.Checked = settings.ShareFolderDelete;
                 _diagnostics.Text = _context.DiagnosticsReport();
-                _bannerLabel.Text = _context.Elevated ? string.Empty : Strings.T("banner.noelevated");
+
+                // El aviso de falta de permisos es una capsula: si no hay nada que avisar se
+                // oculta, pero tiene que volver a aparecer cuando toque.
+                string banner = _context.Elevated ? string.Empty : Strings.T("banner.noelevated");
+                _bannerLabel.Text = banner;
+                _bannerLabel.Visible = banner.Length > 0;
             }
             finally
             {
@@ -1270,39 +1710,61 @@ namespace NetForge.Ui
             HotspotStatus status = _context.Hotspot.Status ?? new HotspotStatus();
             string stateText;
             Color color;
+            Color soft;
             switch (status.State)
             {
                 case EngineState.On:
                     stateText = Strings.T("network.state.on");
                     color = Theme.Success;
+                    soft = Theme.SuccessSoft;
                     break;
                 case EngineState.Starting:
                     stateText = Strings.T("network.state.starting");
                     color = Theme.Warning;
+                    soft = Theme.WarningSoft;
                     break;
                 case EngineState.Stopping:
                     stateText = Strings.T("network.state.stopping");
                     color = Theme.Warning;
+                    soft = Theme.WarningSoft;
                     break;
                 case EngineState.Faulted:
                     stateText = Strings.T("network.state.faulted");
                     color = Theme.Danger;
+                    soft = Theme.DangerSoft;
                     break;
                 default:
                     stateText = Strings.T("network.state.idle");
                     color = Theme.TextMuted;
+                    soft = Theme.SurfaceHigh;
                     break;
             }
 
+            // El color cuenta el estado y el punto lo subraya, pero el texto siempre se lee: el
+            // gris apagado sobre su propia capsula se quedaria corto de contraste.
             _stateLabel.Text = stateText;
-            _stateLabel.ForeColor = color;
-            _endpointLabel.Text = status.State == EngineState.On
+            _stateLabel.DotColor = color;
+            _stateLabel.FillColor = soft;
+            _stateLabel.InkColor = color == Theme.TextMuted ? Theme.Text : color;
+
+            string endpoint = status.State == EngineState.On
                 ? "SSID " + status.Ssid + "  |  " + status.Endpoint + "  |  " + status.Engine
                 : string.Empty;
+            _endpointLabel.Text = endpoint;
+            _endpointLabel.Visible = endpoint.Length > 0;
+
             _startStop.Text = _context.Hotspot.IsRunning ? Strings.T("network.stop") : Strings.T("network.create");
+            Theme.SetGlyph(_startStop, _context.Hotspot.IsRunning ? GlyphKind.Stop : GlyphKind.Play);
             _guardLabel.Text = Strings.T("network.guard") + ": " + (_context.Guard.Armed
                 ? _context.Guard.TotalResurrections + " recuperacion(es)"
                 : "inactiva");
+            _guardLabel.DotColor = _context.Guard.Armed ? Theme.Success : Theme.TextMuted;
+
+            // El titulo de la ventana dice lo mismo que la cabecera: en la barra de tareas, con
+            // la ventana detras de otras, es lo unico que se ve.
+            Text = status.State == EngineState.On
+                ? Strings.T("app.title") + " - " + status.Ssid
+                : Strings.T("app.title");
         }
 
         private void RefreshFilesState()
@@ -1327,14 +1789,28 @@ namespace NetForge.Ui
             _filesStats.Text = running
                 ? Strings.T("files.sent") + ": " + FormatSize(_context.Files.BytesServed) +
                   "   " + Strings.T("files.received") + ": " + FormatSize(_context.Files.BytesReceived) +
-                  "   conexiones: " + _context.Files.ClientCount
+                  "   " + Strings.T("files.connections") + ": " + _context.Files.ClientCount
                 : Strings.T("files.nored");
+            _filesStats.DotColor = running ? Theme.Success : Theme.TextMuted;
 
             RefreshQr();
         }
 
         private void RefreshQr()
         {
+            // El reloj de la ventana pasa por aqui cada segundo y medio. Codificar el QR otra vez
+            // cuando la direccion no ha cambiado es tirar trabajo y hace parpadear la imagen, asi
+            // que solo se regenera cuando cambia lo que lleva dentro.
+            string key = _context.Files.IsRunning
+                ? _context.Files.PortalUrl + "|" + _context.Settings.FtpUser
+                : "(apagado)";
+            if (string.Equals(key, _lastQrPayload, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _lastQrPayload = key;
+
             string payload;
             Image image = _context.Files.CreateQr(4, Color.Black, Color.White, out payload);
             Image previous = _qr.Image;
@@ -1375,52 +1851,85 @@ namespace NetForge.Ui
             }
 
             string filter = _filter == null ? string.Empty : _filter.Text.Trim();
-            int shown = 0;
+            List<LanClient> visible = new List<LanClient>();
+            foreach (LanClient client in clients)
+            {
+                if (MatchesFilter(client, filter))
+                {
+                    visible.Add(client);
+                }
+            }
 
             _clients.SuspendLayout();
             try
             {
-                _clients.Rows.Clear();
-                foreach (LanClient client in clients)
+                // El radar repinta cada pocos segundos. Si los equipos siguen siendo los mismos,
+                // las celdas se actualizan en su sitio: asi no se pierde el orden que eligio el
+                // usuario, ni el desplazamiento, ni parpadea la tabla entera.
+                bool sameRows;
+                if (visible.Count == 0)
                 {
-                    if (!MatchesFilter(client, filter))
+                    sameRows = _clients.Rows.Count == 1;
+                }
+                else if (_clients.Rows.Count == visible.Count)
+                {
+                    sameRows = true;
+                    for (int i = 0; i < visible.Count; i++)
                     {
-                        continue;
+                        object mac = _clients.Rows[i].Cells["mac"].Value;
+                        if (mac == null || !string.Equals(mac.ToString(), visible[i].Mac, StringComparison.OrdinalIgnoreCase))
+                        {
+                            sameRows = false;
+                            break;
+                        }
                     }
-
-                    int index = _clients.Rows.Add(
-                        client.AddressText,
-                        client.Mac,
-                        client.VendorText,
-                        string.IsNullOrEmpty(client.HostName) ? "-" : client.HostName,
-                        client.IsBanned ? Strings.T("clients.banned") : client.PresenceText,
-                        client.SourceText);
-                    if (client.IsBanned)
-                    {
-                        _clients.Rows[index].DefaultCellStyle.ForeColor = Theme.Danger;
-                    }
-
-                    if (selected != null && string.Equals(selected, client.Mac, StringComparison.OrdinalIgnoreCase))
-                    {
-                        _clients.Rows[index].Selected = true;
-                    }
-
-                    shown++;
+                }
+                else
+                {
+                    sameRows = false;
                 }
 
-                // El radar repinta la tabla cada pocos segundos: sin volver a aplicar el orden
-                // elegido, ordenar por fabricante duraria lo que tarda la siguiente auditoria.
-                if (_clients.SortedColumn != null)
+                if (sameRows && visible.Count > 0)
                 {
-                    try
+                    for (int i = 0; i < visible.Count; i++)
                     {
-                        _clients.Sort(_clients.SortedColumn, _clients.SortOrder == SortOrder.Descending
-                            ? ListSortDirection.Descending
-                            : ListSortDirection.Ascending);
+                        UpdateClientRow(_clients.Rows[i], visible[i]);
                     }
-                    catch (InvalidOperationException)
+                }
+                else if (!sameRows)
+                {
+                    _clients.Rows.Clear();
+                    if (visible.Count == 0)
                     {
-                        // Una columna que desaparece no puede tumbar la lista.
+                        AddEmptyClientRow();
+                    }
+                    else
+                    {
+                        foreach (LanClient client in visible)
+                        {
+                            int index = _clients.Rows.Add(ClientCells(client));
+                            StyleClientRow(_clients.Rows[index], client);
+                            if (selected != null && string.Equals(selected, client.Mac, StringComparison.OrdinalIgnoreCase))
+                            {
+                                _clients.Rows[index].Selected = true;
+                            }
+                        }
+                    }
+
+                    // El radar repinta la tabla cada pocos segundos: sin volver a aplicar el orden
+                    // elegido, ordenar por fabricante duraria lo que tarda la siguiente auditoria.
+                    if (_clients.SortedColumn != null)
+                    {
+                        try
+                        {
+                            _clients.Sort(_clients.SortedColumn, _clients.SortOrder == SortOrder.Descending
+                                ? ListSortDirection.Descending
+                                : ListSortDirection.Ascending);
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            // Una columna que desaparece no puede tumbar la lista.
+                        }
                     }
                 }
             }
@@ -1430,8 +1939,65 @@ namespace NetForge.Ui
             }
 
             _clientsCount.Text = string.IsNullOrEmpty(filter)
-                ? shown + " " + Strings.T("network.clients")
-                : shown + " / " + clients.Count + " " + Strings.T("network.clients");
+                ? visible.Count + " " + Strings.T("network.clients")
+                : visible.Count + " / " + clients.Count + " " + Strings.T("network.clients");
+            _clientsCount.DotColor = visible.Count > 0 ? Theme.Accent : Theme.TextMuted;
+        }
+
+        /// <summary>Las seis celdas de un equipo, con el mismo texto que se ve en pantalla.</summary>
+        private static string[] ClientCells(LanClient client)
+        {
+            return new string[]
+            {
+                client.AddressText,
+                client.Mac,
+                client.VendorText,
+                string.IsNullOrEmpty(client.HostName) ? "-" : client.HostName,
+                client.IsBanned ? Strings.T("clients.banned") : client.PresenceText,
+                client.SourceText
+            };
+        }
+
+        private static void StyleClientRow(DataGridViewRow row, LanClient client)
+        {
+            row.DefaultCellStyle.ForeColor = client.IsBanned ? Theme.Danger : Theme.Text;
+        }
+
+        /// <summary>Copia los valores nuevos solo si han cambiado: cada escritura repinta.</summary>
+        private static void UpdateClientRow(DataGridViewRow row, LanClient client)
+        {
+            string[] cells = ClientCells(client);
+            for (int i = 0; i < cells.Length && i < row.Cells.Count; i++)
+            {
+                string current = Convert.ToString(row.Cells[i].Value, CultureInfo.CurrentCulture);
+                if (!string.Equals(current, cells[i], StringComparison.Ordinal))
+                {
+                    row.Cells[i].Value = cells[i];
+                }
+            }
+
+            StyleClientRow(row, client);
+        }
+
+        /// <summary>
+        /// Una tabla vacia sin explicacion parece una aplicacion rota. Se deja una sola linea con
+        /// el aviso, en gris y sin MAC: pulsar sobre ella no ofrece bloquear a nadie.
+        /// </summary>
+        private void AddEmptyClientRow()
+        {
+            int index = _clients.Rows.Add(
+                Strings.T("clients.empty"),
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty);
+            DataGridViewRow row = _clients.Rows[index];
+            row.DefaultCellStyle.ForeColor = Theme.TextMuted;
+            row.DefaultCellStyle.SelectionBackColor = Theme.SurfaceAlt;
+            row.DefaultCellStyle.SelectionForeColor = Theme.TextMuted;
+            row.Height = 32;
+            row.Selected = false;
         }
 
         /// <summary>
@@ -1800,7 +2366,86 @@ namespace NetForge.Ui
 
             _statusMemory.Text = Strings.T("status.memory") + ": " + _context.MemoryMb + " MB";
             _statusPorts.Text = Strings.T("status.ports") + ": " + _context.Settings.PortalPort +
-                " (web), " + _context.Settings.FtpPort + " (ftp)";
+                " / " + _context.Settings.FtpPort;
+
+            bool servers = _context.Files.IsRunning;
+            _statusServers.Text = Strings.T("status.servers") + ": " +
+                (servers ? Strings.T("status.up") : Strings.T("status.down"));
+            _statusServers.DotColor = servers ? Theme.Success : Theme.TextMuted;
+
+            int clients = _lastClients == null ? 0 : _lastClients.Count;
+            _statusClients.Text = Strings.T("status.clients") + ": " + clients;
+            _statusClients.DotColor = clients > 0 ? Theme.Accent : Theme.TextMuted;
+
+            RefreshTiles(clients);
+        }
+
+        /// <summary>
+        /// Tarjetas de resumen de la pestana de clientes: la red, los equipos, los servidores y el
+        /// vigilante en cuatro recuadros. Nada de esto inventa datos: cada valor sale del mismo
+        /// sitio que la cabecera y la barra inferior, asi que no pueden contradecirse.
+        /// </summary>
+        private void RefreshTiles(int clients)
+        {
+            if (_tileClients == null || _released || IsDisposed)
+            {
+                return;
+            }
+
+            bool servers = _context.Files.IsRunning;
+            bool armed = _context.Guard.Armed;
+            string network = _stateLabel == null || string.IsNullOrEmpty(_stateLabel.Text)
+                ? Strings.T("network.state.idle")
+                : _stateLabel.Text;
+
+            SetTile(_tileClients, clients.ToString(CultureInfo.InvariantCulture), clients > 0 ? Theme.Accent : Theme.TextMuted);
+            SetTile(_tileNet, network, _stateLabel == null ? Theme.TextMuted : _stateLabel.DotColor);
+            SetTile(_tileFiles, Strings.T(servers ? "tile.files.up" : "tile.files.down"), servers ? Theme.Success : Theme.TextMuted);
+            SetTile(_tileGuard, Strings.T(armed ? "tile.guard.armed" : "tile.guard.paused"), armed ? Theme.Success : Theme.TextMuted);
+        }
+
+        private static void SetTile(StatTile tile, string value, Color dot)
+        {
+            if (tile == null)
+            {
+                return;
+            }
+
+            if (!string.Equals(tile.Text, value, StringComparison.Ordinal))
+            {
+                tile.Text = value;
+            }
+
+            if (tile.DotColor != dot)
+            {
+                tile.DotColor = dot;
+            }
+        }
+
+        // Las tarjetas llevan a la pestana de la que hablan: la de la red es el diagnostico,
+        // donde esta el detalle del motor; la del vigilante, los ajustes que lo arman.
+        private void OnTileClients(object sender, EventArgs e)
+        {
+            SelectTab(0);
+            if (_filter != null)
+            {
+                _filter.Focus();
+            }
+        }
+
+        private void OnTileNetwork(object sender, EventArgs e)
+        {
+            SelectTab(4);
+        }
+
+        private void OnTileFiles(object sender, EventArgs e)
+        {
+            SelectTab(2);
+        }
+
+        private void OnTileGuard(object sender, EventArgs e)
+        {
+            SelectTab(3);
         }
 
         private void RefreshBans()
@@ -1814,8 +2459,14 @@ namespace NetForge.Ui
             IList<BannedDevice> devices = _context.Bans.Devices();
             if (devices.Count == 0)
             {
-                // Una tabla vacia sin explicacion parece un fallo de la aplicacion.
-                _bans.Rows.Add(string.Empty, string.Empty, string.Empty, string.Empty, Strings.T("parole.empty"));
+                // Una tabla vacia sin explicacion parece un fallo de la aplicacion. El aviso va
+                // en gris y sin seleccion posible: no es una fila, es una nota.
+                int index = _bans.Rows.Add(string.Empty, string.Empty, string.Empty, string.Empty, Strings.T("parole.empty"));
+                DataGridViewRow row = _bans.Rows[index];
+                row.DefaultCellStyle.ForeColor = Theme.TextMuted;
+                row.DefaultCellStyle.SelectionBackColor = Theme.SurfaceAlt;
+                row.DefaultCellStyle.SelectionForeColor = Theme.TextMuted;
+                row.Selected = false;
             }
             else
             {
@@ -1831,16 +2482,24 @@ namespace NetForge.Ui
 
         private void RefreshLog()
         {
-            if (_released || IsDisposed)
+            if (_released || IsDisposed || _logList == null)
             {
                 return;
             }
 
             IList<LogEntry> entries = Log.Snapshot();
-            if (_logList.Items.Count == entries.Count)
+            string filter = _logFilter == null ? string.Empty : _logFilter.Text.Trim();
+            bool warnOnly = _logWarnOnly != null && _logWarnOnly.Checked;
+
+            // Rehacer la lista solo cuando cambia algo de verdad: el registro se escribe solo, y
+            // reconstruir cuatrocientas lineas en cada vuelta se nota en el desplazamiento.
+            string signature = entries.Count + "|" + filter + "|" + (warnOnly ? "1" : "0");
+            if (string.Equals(signature, _logSignature, StringComparison.Ordinal))
             {
                 return;
             }
+
+            _logSignature = signature;
 
             _logList.BeginUpdate();
             try
@@ -1848,13 +2507,89 @@ namespace NetForge.Ui
                 _logList.Items.Clear();
                 for (int i = entries.Count - 1; i >= 0; i--)
                 {
-                    _logList.Items.Add(entries[i].ToString());
+                    string line = entries[i].ToString();
+                    if (warnOnly && LogList.Classify(line) == LogKind.Info)
+                    {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrEmpty(filter) && line.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0)
+                    {
+                        continue;
+                    }
+
+                    _logList.Items.Add(line);
                 }
             }
             finally
             {
                 _logList.EndUpdate();
             }
+        }
+
+        private void OnLogFilterChanged(object sender, EventArgs e)
+        {
+            _logSignature = null;
+            RefreshLog();
+        }
+
+        /// <summary>
+        /// Guarda el informe de diagnostico en un fichero de texto: es lo que se adjunta cuando
+        /// se pide ayuda por un fallo.
+        /// </summary>
+        private void OnSaveDiagnostics(object sender, EventArgs e)
+        {
+            using (SaveFileDialog dialog = new SaveFileDialog())
+            {
+                dialog.Filter = "Texto|*.txt|Log|*.log";
+                dialog.FileName = "netforge-informe.txt";
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                try
+                {
+                    File.WriteAllText(dialog.FileName, _diagnostics.Text, new UTF8Encoding(false));
+                    Log.Write("Informe de diagnostico guardado en " + dialog.FileName);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, ex.Message, Strings.T("common.error"), MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        /// <summary>Abre en el Explorador la carpeta que se esta compartiendo.</summary>
+        private void OnOpenSharedFolder(object sender, EventArgs e)
+        {
+            string folder = _context.Settings.Folder;
+            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
+            {
+                MessageBox.Show(this, Strings.T("files.foldermissing"), Strings.T("common.warning"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                using (Process.Start("explorer.exe", "\"" + folder + "\"")) { }
+            }
+            catch (Exception ex)
+            {
+                Log.Write("No se pudo abrir la carpeta compartida: " + ex.Message);
+                MessageBox.Show(this, ex.Message, Strings.T("common.error"), MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>Doble clic sobre un equipo: se abre su direccion, como en el menu contextual.</summary>
+        private void OnClientsOpenRow(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0)
+            {
+                return;
+            }
+
+            OnClientsOpenBrowser(sender, EventArgs.Empty);
         }
 
         private LanClient SelectedClient()
