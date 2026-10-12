@@ -84,9 +84,16 @@ $sourcesExe = @(
 
 Write-Host '[build] compilando NetForge.exe'
 $refs = @($framework + '\System.dll', $framework + '\System.Core.dll', $framework + '\System.Drawing.dll', $framework + '\System.Windows.Forms.dll', $framework + '\System.Net.dll')
-$cscArgs = @(-nologo, -target:'exe', -langversion:latest, '-out:' + $exeOut, -platform:x64, '-win32manifest:' + (Join-Path $root 'src\App.manifest'))
+$cscArgs = @()
+$cscArgs += -nologo
+$cscArgs += -target:'exe'
+$cscArgs += -langversion:latest
+$cscArgs += ('-out:' + $exeOut)
+$cscArgs += -platform:x64
+$cscArgs += ('-win32manifest:' + (Join-Path $root 'src\App.manifest'))
 if ($icon) { $cscArgs += $icon }
-$cscArgs += $embed + $sourcesExe
+$cscArgs += $embed
+$cscArgs += $sourcesExe
 foreach ($r in $refs) { $cscArgs += ('-r:' + $r) }
 & $csc @cscArgs
 if ($LASTEXITCODE -ne 0) { throw '[build] NetForge.exe no se compiló' }
@@ -129,7 +136,12 @@ if (-not $SkipSelfTest) {
 
     Write-Host '[build] compilando NetForge.Autotest.exe'
     $refsTest = @($framework + '\System.dll', $framework + '\System.Core.dll', $framework + '\System.Drawing.dll', $framework + '\System.Windows.Forms.dll', $framework + '\System.Net.dll', $framework + '\System.Net.NetworkInformation.dll')
-    $cscArgsTest = @(-nologo, -target:'exe', -langversion:latest, '-out:' + $autotestOut, -platform:x64)
+    $cscArgsTest = @()
+    $cscArgsTest += -nologo
+    $cscArgsTest += -target:'exe'
+    $cscArgsTest += -langversion:latest
+    $cscArgsTest += ('-out:' + $autotestOut)
+    $cscArgsTest += -platform:x64
     $cscArgsTest += $sourcesTest
     foreach ($r in $refsTest) { $cscArgsTest += ('-r:' + $r) }
     & $csc @cscArgsTest
